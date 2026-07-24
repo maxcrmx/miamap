@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ma carte</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  .screen { display: none; height: 100%; width: 100%; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* Écran 1 - jaune */
+  #screen1 {
+    background: #f5d842;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 2rem;
+    text-align: center;
+  }
+  #screen1 .icon { font-size: 52px; }
+  #screen1 h1 { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+  #screen1 p { color: #5a4f00; font-size: 15px; }
+  #screen1 button {
+    background: #1a1a1a;
+    color: #f5d842;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #screen1 button:active { opacity: 0.8; }
+
+  /* Écran 2 - recherche + carte */
+  #screen2 { padding: 12px; gap: 12px; background: #fff; }
+  .topbar { display: flex; align-items: center; gap: 8px; }
+  .topbar button.back {
+    background: #f0f0f0;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .topbar h2 { font-size: 17px; font-weight: 600; }
+
+  .search-row { display: flex; gap: 8px; }
+  #addrInput {
+    flex: 1;
+    border: 1.5px solid #ddd;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    outline: none;
+  }
+  #addrInput:focus { border-color: #1a1a1a; }
+  #addBtn {
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #addBtn:disabled { background: #ccc; }
+
+  #status { font-size: 13px; color: #999; min-height: 16px; }
+
+  #map { flex: 1; border-radius: 12px; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div id="screen1" class="screen active">
+  <div class="icon">📍</div>
+  <h1>Ma carte</h1>
+  <p>POC — ajoute tes adresses</p>
+  <button onclick="goToMap()">Ouvrir ma carte →</button>
+</div>
+
+<div id="screen2" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToHome()">← Retour</button>
+    <h2>Ajouter une adresse</h2>
+  </div>
+  <div class="search-row">
+    <input type="text" id="addrInput" placeholder="Ex: 12 rue de Rivoli, Paris" autocomplete="off">
+    <button id="addBtn" onclick="searchAndAdd()">OK</button>
+  </div>
+  <div id="status"></div>
+  <div id="map"></div>
+</div>
+
+<script>
+  let map, geocoder, mapReady = false;
+
+  function goToMap() {
+    document.getElementById('screen1').classList.remove('active');
+    document.getElementById('screen2').classList.add('active');
+    if (mapReady) {
+      setTimeout(() => google.maps.event.trigger(map, 'resize'), 50);
+    }
+  }
+
+  function goToHome() {
+    document.getElementById('screen2').classList.remove('active');
+    document.getElementById('screen1').classList.add('active');
+  }
+
+  function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat: 48.8566, lng: 2.3522 }, // Paris par défaut
+      zoom: 12,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+    });
+    geocoder = new google.maps.Geocoder();
+    mapReady = true;
+  }
+
+  function searchAndAdd() {
+    const input = document.getElementById('addrInput');
+    const status = document.getElementById('status');
+    const addBtn = document.getElementById('addBtn');
+    const address = input.value.trim();
+    if (!address) return;
+
+    addBtn.disabled = true;
+    status.textContent = 'Recherche en cours...';
+
+    geocoder.geocode({ address: address }, (results, status_) => {
+      addBtn.disabled = false;
+      if (status_ === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        new google.maps.Marker({
+          map: map,
+          position: loc,
+          title: results[0].formatted_address,
+          animation: google.maps.Animation.DROP,
+        });
+        map.panTo(loc);
+        map.setZoom(15);
+        status.textContent = '✓ Ajouté : ' + results[0].formatted_address;
+        input.value = '';
+      } else {
+        status.textContent = 'Adresse introuvable, réessaie.';
+      }
+    });
+  }
+
+  document.getElementById('addrInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchAndAdd();
+  });
+</script>
+
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY&callback=initMap">
+</script>
+
+</body>
+</html>
