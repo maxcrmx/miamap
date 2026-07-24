@@ -15,7 +15,6 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 
   .screen { display: none; height: 100%; width: 100%; flex-direction: column; }
   .screen.active { display: flex; }
@@ -26,7 +25,7 @@
     align-items: center;
     justify-content: center;
     gap: 28px;
-    padding: 2rem;
+    padding: calc(env(safe-area-inset-top) + 2rem) 2rem calc(env(safe-area-inset-bottom) + 2rem);
     text-align: center;
   }
   #screen1 .icon { font-size: 52px; }
@@ -45,7 +44,7 @@
   #screen1 button:active { opacity: 0.8; }
 
   /* Écran 2 - recherche + carte */
-  #screen2 { padding: 12px; gap: 12px; background: #fff; }
+  #screen2 { padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px); gap: 12px; background: #fff; }
   .topbar { display: flex; align-items: center; gap: 8px; }
   .topbar button.back {
     background: #f0f0f0;
