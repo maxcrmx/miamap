@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5d842; }
 
   .screen { display: none; height: 100%; width: 100%; flex-direction: column; }
   .screen.active { display: flex; }
@@ -112,6 +112,7 @@
   function goToMap() {
     document.getElementById('screen1').classList.remove('active');
     document.getElementById('screen2').classList.add('active');
+    document.body.style.background = '#fff';
     if (mapReady) {
       setTimeout(() => google.maps.event.trigger(map, 'resize'), 50);
     }
@@ -120,6 +121,7 @@
   function goToHome() {
     document.getElementById('screen2').classList.remove('active');
     document.getElementById('screen1').classList.add('active');
+    document.body.style.background = '#f5d842';
   }
 
   function initMap() {
