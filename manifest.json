@@ -1,0 +1,15 @@
+{
+  "name": "Ma carte",
+  "short_name": "Ma carte",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5d842",
+  "theme_color": "#f5d842",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
