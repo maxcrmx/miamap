@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+  import.html — Step 2 of the one-time mapstr import (SPEC.md "Data
+  import"). Open this page yourself, in a browser where you're already
+  logged in as admin on index.html (same site, same session).
+
+  It loads mapstr_parsed_review.json (produced by scripts/parse_mapstr.py
+  — check that file, or the .csv version, BEFORE clicking the import
+  button here) and writes each place + its tags to Supabase, one at a
+  time, using your existing admin session — so it's subject to the exact
+  same RLS policies as the rest of the app.
+
+  It's safe to click "Lancer l'import" more than once: places already
+  present (matched by exact name + address) are skipped, not duplicated.
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Import mapstr → Supabase</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 20px; }
+  #import-gate { color: #666; margin-bottom: 20px; }
+  button { background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; margin-right: 8px; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  #import-summary { margin: 12px 0; font-size: 14px; color: #444; }
+  #import-log { white-space: pre-wrap; background: #f7f7f7; border-radius: 8px; padding: 12px; font-size: 12px; max-height: 400px; overflow-y: auto; font-family: ui-monospace, monospace; margin-top: 16px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Import des 307 lieux mapstr → Supabase</h1>
+  <p id="import-gate">Vérification de la session...</p>
+
+  <div id="import-panel" class="hidden">
+    <p>1. Vérifie d'abord <code>mapstr_parsed_review.csv</code> (ou <code>.json</code>) dans le dossier du projet.</p>
+    <p>2. Charge le fichier, vérifie le résumé, puis lance l'import.</p>
+    <button id="import-load-btn">Charger mapstr_parsed_review.json</button>
+    <button id="import-run-btn" disabled>Lancer l'import</button>
+    <div id="import-summary"></div>
+    <pre id="import-log"></pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="js/import-tool.js"></script>
+</body>
+</html>

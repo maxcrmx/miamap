@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  index.html — miamap, a personal "save your favorite places" app.
+
+  This is the entire page shell: every screen (auth, map/list, filter
+  panel, place detail sheet, add/edit form, settings) lives here as a
+  <div>, shown/hidden via CSS classes controlled from js/app.js. There is
+  no bundler/build step (per SPEC.md), so:
+    - Supabase and Google Maps SDKs are loaded via plain <script> tags.
+    - Our own code is loaded as ES modules (<script type="module">), which
+      lets js/*.js files use import/export without a bundler.
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -12,168 +23,174 @@
 <meta name="apple-mobile-web-app-title" content="Ma carte">
 <meta name="theme-color" content="#f5d842">
 <link rel="apple-touch-icon" href="icon.png">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5d842; }
 
-  .screen { display: none; height: 100%; width: 100%; flex-direction: column; }
-  .screen.active { display: flex; }
+<link rel="stylesheet" href="style.css">
 
-  /* Écran 1 - jaune */
-  #screen1 {
-    background: #f5d842;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    padding: 2rem;
-    text-align: center;
-  }
-  #screen1 .icon { font-size: 52px; }
-  #screen1 h1 { font-size: 26px; font-weight: 600; color: #1a1a1a; }
-  #screen1 p { color: #5a4f00; font-size: 15px; }
-  #screen1 button {
-    background: #1a1a1a;
-    color: #f5d842;
-    border: none;
-    border-radius: 12px;
-    padding: 16px 32px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  #screen1 button:active { opacity: 0.8; }
-
-  /* Écran 2 - recherche + carte */
-  #screen2 { padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px); gap: 12px; background: #fff; }
-  .topbar { display: flex; align-items: center; gap: 8px; }
-  .topbar button.back {
-    background: #f0f0f0;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  .topbar h2 { font-size: 17px; font-weight: 600; }
-
-  .search-row { display: flex; gap: 8px; }
-  #addrInput {
-    flex: 1;
-    border: 1.5px solid #ddd;
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 15px;
-    outline: none;
-  }
-  #addrInput:focus { border-color: #1a1a1a; }
-  #addBtn {
-    background: #1a1a1a;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 0 20px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  #addBtn:disabled { background: #ccc; }
-
-  #status { font-size: 13px; color: #999; min-height: 16px; }
-
-  #map { flex: 1; border-radius: 12px; overflow: hidden; }
-</style>
+<script>
+  // The Google Maps script tag below loads asynchronously. Our app code
+  // (js/app.js, an ES module) also starts running as soon as the HTML is
+  // parsed, which can be *before* Maps has finished loading. This tiny
+  // promise + callback lets any module `await window.googleMapsReady`
+  // instead of racing against the async script.
+  window.googleMapsReady = new Promise((resolve) => { window.__resolveGoogleMapsReady = resolve; });
+  function onGoogleMapsLoaded() { window.__resolveGoogleMapsReady(); }
+</script>
 </head>
 <body>
 
-<div id="screen1" class="screen active">
-  <div class="icon">📍</div>
-  <h1>Ma carte</h1>
-  <p>POC — ajoute tes adresses</p>
-  <button onclick="goToMap()">Ouvrir ma carte →</button>
+<!-- ============================== AUTH SCREEN ============================== -->
+<div id="auth-screen" class="top-screen active">
+  <div class="auth-box">
+    <div class="auth-icon">📍</div>
+    <h1>Ma carte</h1>
+    <p>Connecte-toi avec ton email pour accéder à la carte.</p>
+    <form id="auth-form">
+      <input type="email" id="auth-email" placeholder="ton@email.com" required autocomplete="email" />
+      <button type="submit">Recevoir un lien de connexion</button>
+    </form>
+    <p id="auth-status" class="status-text"></p>
+
+    <!--
+      Fallback if the magic link itself fails (e.g. a mail client's link
+      scanner "pre-clicks" it, consuming the one-time token before you do —
+      a common real-world failure mode). Supabase's OTP email already
+      contains this 6-digit code alongside the link, so this isn't a
+      separate/custom auth system — just another way to redeem the same
+      one-time code Supabase already sent. Always visible (not just after a
+      successful send) since it's also the only way in if sending itself is
+      currently rate-limited but an earlier email already arrived.
+    -->
+    <button type="button" id="auth-code-toggle" class="link-btn">Saisir le code reçu par email</button>
+    <form id="auth-code-form" class="hidden">
+      <input type="text" id="auth-code-input" placeholder="Code reçu par email" inputmode="numeric" autocomplete="one-time-code" />
+      <button type="submit">Valider le code</button>
+    </form>
+  </div>
 </div>
 
-<div id="screen2" class="screen">
+<!-- ============================== MAIN SCREEN ============================== -->
+<div id="main-screen" class="top-screen">
   <div class="topbar">
-    <button class="back" onclick="goToHome()">← Retour</button>
-    <h2>Ajouter une adresse</h2>
+    <button id="filter-open-btn" class="icon-btn" aria-label="Filtres">☰</button>
+    <input type="text" id="search-input" placeholder="Rechercher un lieu..." autocomplete="off" />
+    <button id="view-toggle-btn" class="icon-btn">☰ Liste</button>
   </div>
-  <div class="search-row">
-    <input type="text" id="addrInput" placeholder="Ex: 12 rue de Rivoli, Paris" autocomplete="off">
-    <button id="addBtn" onclick="searchAndAdd()">OK</button>
+
+  <!-- Sort control, only meaningful in list view but always present for simplicity -->
+  <div class="sort-row" id="sort-row">
+    <span>Trier par :</span>
+    <label><input type="radio" name="sort" value="distance" checked /> Distance</label>
+    <label><input type="radio" name="sort" value="rating" /> Note</label>
+    <label><input type="radio" name="sort" value="price" /> Prix</label>
   </div>
-  <div id="status"></div>
-  <div id="map"></div>
+
+  <div id="map-container"></div>
+  <div id="list-container" class="hidden"></div>
+
+  <div class="bottom-bar">
+    <div class="bottom-bar-spacer"></div>
+    <button id="add-place-btn" class="fab admin-only hidden" aria-label="Ajouter un lieu">+</button>
+    <button id="settings-open-btn" class="icon-btn admin-only hidden" aria-label="Réglages">⚙️</button>
+  </div>
 </div>
 
-<script>
-  let map, geocoder, mapReady = false;
+<!-- ============================== FILTER PANEL ============================== -->
+<div id="filter-backdrop" class="side-backdrop"></div>
+<div id="filter-panel" class="side-panel">
+  <div class="side-panel-header">
+    <h2>Filtres</h2>
+  </div>
+  <div id="filter-panel-content" class="side-panel-content"></div>
+</div>
 
-  function goToMap() {
-    document.getElementById('screen1').classList.remove('active');
-    document.getElementById('screen2').classList.add('active');
-    document.body.style.background = '#fff';
-    if (mapReady) {
-      setTimeout(() => google.maps.event.trigger(map, 'resize'), 50);
-    }
-  }
+<!-- ============================== PLACE DETAIL SHEET ============================== -->
+<div id="place-sheet-backdrop" class="sheet-backdrop"></div>
+<div id="place-sheet" class="bottom-sheet">
+  <div id="place-sheet-handle" class="sheet-handle"><span class="sheet-handle-bar"></span></div>
+  <div id="place-sheet-content" class="sheet-content"></div>
+</div>
 
-  function goToHome() {
-    document.getElementById('screen2').classList.remove('active');
-    document.getElementById('screen1').classList.add('active');
-    document.body.style.background = '#f5d842';
-  }
+<!-- ============================== ADD/EDIT PLACE FORM ============================== -->
+<div id="place-form-screen" class="top-screen overlay-screen admin-only">
+  <div class="topbar">
+    <button type="button" id="place-form-close-x" class="icon-btn">← Retour</button>
+    <h2 id="place-form-title">Ajouter un lieu</h2>
+  </div>
+  <form id="place-form" class="form-body">
+    <label class="form-label">Nom
+      <input type="text" id="place-form-name" required />
+    </label>
 
-  function initMap() {
-    map = new google.maps.Map(document.getElementById('map'), {
-      center: { lat: 48.8566, lng: 2.3522 }, // Paris par défaut
-      zoom: 12,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-    });
-    geocoder = new google.maps.Geocoder();
-    mapReady = true;
-  }
+    <label class="form-label">Adresse
+      <input type="text" id="place-form-address" placeholder="Commence à taper une adresse..." autocomplete="off" required />
+    </label>
+    <p id="place-form-address-status" class="status-text"></p>
+    <div id="place-form-address-suggestions" class="address-suggestions"></div>
 
-  function searchAndAdd() {
-    const input = document.getElementById('addrInput');
-    const status = document.getElementById('status');
-    const addBtn = document.getElementById('addBtn');
-    const address = input.value.trim();
-    if (!address) return;
+    <div id="place-form-tags"></div>
 
-    addBtn.disabled = true;
-    status.textContent = 'Recherche en cours...';
+    <label class="form-label">Note (laisser vide si non testé)
+      <div class="rating-input-row">
+        <input type="number" id="place-form-rating" min="0" max="5" step="0.5" placeholder="à définir" />
+        <button type="button" id="place-form-rating-clear" class="btn-secondary btn-small">Effacer</button>
+      </div>
+    </label>
 
-    geocoder.geocode({ address: address }, (results, status_) => {
-      addBtn.disabled = false;
-      if (status_ === 'OK' && results[0]) {
-        const loc = results[0].geometry.location;
-        new google.maps.Marker({
-          map: map,
-          position: loc,
-          title: results[0].formatted_address,
-          animation: google.maps.Animation.DROP,
-        });
-        map.panTo(loc);
-        map.setZoom(15);
-        status.textContent = '✓ Ajouté : ' + results[0].formatted_address;
-        input.value = '';
-      } else {
-        status.textContent = 'Adresse introuvable, réessaie.';
-      }
-    });
-  }
+    <label class="form-label">Les 👍 (ce qui est top)
+      <textarea id="place-form-top" rows="3"></textarea>
+    </label>
+    <label class="form-label">Les 🤷 (ce qui est bof)
+      <textarea id="place-form-bof" rows="3"></textarea>
+    </label>
+    <label class="form-label">Remarques
+      <textarea id="place-form-remarks" rows="3"></textarea>
+    </label>
+    <label class="form-label">Commentaire général
+      <textarea id="place-form-comment" rows="2"></textarea>
+    </label>
 
-  document.getElementById('addrInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') searchAndAdd();
-  });
-</script>
+    <div class="form-actions">
+      <button type="button" id="place-form-cancel" class="btn-secondary">Annuler</button>
+      <button type="submit" class="btn-primary">Enregistrer</button>
+    </div>
+  </form>
+</div>
 
+<!-- ============================== SETTINGS SCREEN ============================== -->
+<div id="settings-screen" class="top-screen overlay-screen admin-only">
+  <div class="topbar">
+    <button type="button" id="settings-close-btn" class="icon-btn">← Retour</button>
+    <h2>Réglages</h2>
+  </div>
+  <div class="form-body">
+    <button id="logout-btn" class="btn-secondary">Se déconnecter</button>
+
+    <h3>Inviter un lecteur</h3>
+    <form id="settings-invite-form" class="invite-form">
+      <input type="email" id="settings-invite-email" placeholder="email@exemple.com" required />
+      <button type="submit" class="btn-primary">Inviter</button>
+    </form>
+    <p id="settings-invite-status" class="status-text"></p>
+
+    <h3>Lecteurs</h3>
+    <div id="settings-reader-list"></div>
+  </div>
+</div>
+
+<!-- Supabase JS SDK (v2 UMD build) — exposes window.supabase.createClient -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Marker clustering library — exposes window.markerClusterer.MarkerClusterer -->
+<script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+
+<!-- Google Maps JS API (places library included for the address autocomplete
+     in the add/edit form). Calls onGoogleMapsLoaded (defined above) once ready. -->
 <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY&libraries=places&callback=onGoogleMapsLoaded">
 </script>
+
+<!-- Our app code (ES module) -->
+<script type="module" src="js/app.js"></script>
 
 </body>
 </html>

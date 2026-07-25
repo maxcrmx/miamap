@@ -1,0 +1,9 @@
+# These files contain your real personal reviews/notes from Mapstr and are
+# only needed locally for the one-time import (see scripts/parse_mapstr.py
+# and import.html). This site is deployed on GitHub Pages — if this repo is
+# public, anything committed here is publicly downloadable regardless of
+# Supabase's access control. Do NOT commit these.
+mapstr.csv
+mapstr.geojson
+mapstr_parsed_review.json
+mapstr_parsed_review.csv
