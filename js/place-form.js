@@ -142,11 +142,12 @@ function renderSuggestions(predictions) {
 }
 
 function selectPrediction(prediction) {
-  // website + formatted_phone_number : récupérés ICI, une seule fois, puis
+  // website, téléphone et place_id : récupérés ICI, une seule fois, puis
   // stockés en base à la sauvegarde. La fiche lieu les lit directement —
   // plus aucun appel Google Places à l'ouverture d'une fiche.
   placesService.getDetails(
-    { placeId: prediction.place_id, fields: ['formatted_address', 'geometry', 'name', 'website', 'formatted_phone_number'] },
+    { placeId: prediction.place_id,
+      fields: ['place_id', 'formatted_address', 'geometry', 'name', 'website', 'formatted_phone_number'] },
     (place, status) => {
       if (status !== google.maps.places.PlacesServiceStatus.OK || !place.geometry) {
         addressStatus.textContent = 'Aucun lieu trouvé.';
@@ -160,6 +161,8 @@ function selectPrediction(prediction) {
         // le bouton Site web / Appeler correspondant.
         website: place.website || '',
         phone: place.formatted_phone_number || '',
+        // Identifiant Google du lieu → bouton "Y aller" de la fiche.
+        google_place_id: place.place_id || prediction.place_id || '',
       };
       // Le nom Google pré-remplit le champ nom (modifiable ensuite) — c'est
       // ce qui permet de n'avoir qu'un seul champ de recherche.
@@ -301,10 +304,12 @@ async function onSubmit(e) {
   // ce qui permet de RAFRAÎCHIR website/phone (nouvelle réponse Google).
   const address = selectedLocation
     ? { address: selectedLocation.formatted_address, lat: selectedLocation.lat, lng: selectedLocation.lng,
-        website: selectedLocation.website, phone: selectedLocation.phone }
+        website: selectedLocation.website, phone: selectedLocation.phone,
+        google_place_id: selectedLocation.google_place_id }
     : editingPlace
       ? { address: editingPlace.address, lat: editingPlace.lat, lng: editingPlace.lng,
-          website: editingPlace.website ?? '', phone: editingPlace.phone ?? '' }
+          website: editingPlace.website ?? '', phone: editingPlace.phone ?? '',
+          google_place_id: editingPlace.google_place_id ?? '' }
       : null;
 
   if (!address) {

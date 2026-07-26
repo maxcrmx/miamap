@@ -78,8 +78,20 @@ function tagPillsHtml(place) {
     .join('');
 }
 
-function directionsUrl(place) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.name + ' ' + place.address)}`;
+// "Y aller" ouvre la FICHE Google Maps du lieu, pas un itinéraire : une URL
+// /maps/dir/ est une intention de navigation que le système peut détourner
+// vers Waze, Plans, etc. — alors qu'on veut la page du lieu, d'où l'on peut
+// ensuite lancer l'itinéraire si on le souhaite.
+//
+// La forme canonique demande l'identifiant Google du lieu, stocké à
+// l'ajout/édition (voir js/place-form.js). Les lieux enregistrés avant cette
+// colonne ont une chaîne vide : on retombe alors sur l'URL de recherche
+// Google Maps, qui ouvre elle aussi une fiche de lieu (pas un itinéraire).
+function googleMapsPlaceUrl(place) {
+  if (place.google_place_id) {
+    return `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(place.google_place_id)}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + place.address)}`;
 }
 
 function addedDateText(place) {
@@ -123,7 +135,7 @@ export function openPlaceDetail(place) {
     <p class="place-added">${addedDateText(place)}</p>
 
     <div class="place-actions">
-      <a class="place-action" href="${directionsUrl(place)}" target="_blank" rel="noopener">
+      <a class="place-action" id="place-go-btn" href="${googleMapsPlaceUrl(place)}" target="_blank" rel="noopener">
         <span class="place-action-icon">↗️</span>Y aller</a>
       <a class="place-action${website ? '' : ' disabled'}" id="place-web-btn"
          ${website ? `href="${escapeHtml(website)}"` : ''} target="_blank" rel="noopener">

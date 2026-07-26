@@ -204,6 +204,11 @@ create table if not exists public.places (
   -- time" — the sheet then shows the matching action button disabled.
   website     text not null default '',
   phone       text not null default '',
+  -- Identifiant Google du lieu, récupéré dans la même requête Places que
+  -- ci-dessus. Sert au bouton "Y aller" de la fiche, qui ouvre la FICHE
+  -- Google Maps (/maps/place/?q=place_id:…) plutôt qu'un itinéraire — une
+  -- URL d'itinéraire peut être détournée vers une appli de navigation tierce.
+  google_place_id text not null default '',
   date_added  timestamptz not null default now(),
   created_by  uuid references public.profiles (id),
   created_at  timestamptz not null default now(),

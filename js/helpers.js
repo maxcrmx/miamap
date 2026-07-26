@@ -16,17 +16,6 @@ export function isToTry(place) {
   return place.tags.some((t) => t.category === 'statut' && t.label === 'À tester');
 }
 
-// Colors used for the tag-slice ring drawn around each pin, one per
-// category present on the place (stable so the same category is always
-// the same color across the whole map).
-export const CATEGORY_COLORS = {
-  type_de_lieu: '#f5d842',
-  cuisine: '#ff8a65',
-  special: '#4fc3f7',
-  prix: '#81c784',
-  statut: '#bdbdbd',
-};
-
 // Haversine distance in kilometers between two {lat,lng} points.
 export function distanceKm(a, b) {
   const R = 6371;

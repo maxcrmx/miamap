@@ -2,19 +2,18 @@
 // map.js — Google Map rendering: pins (custom SVG icon), clustering, and
 // wiring pin/cluster clicks back into the rest of the app.
 //
-// Pin design (SPEC.md "Screens & UX flow" #2):
-//   - center emoji = the place-type emoji (see helpers.js pinIcon)
-//   - a ring around it divided into colored slices, one slice per tag
-//     *category* the place has at least one tag in (not one slice per tag —
-//     that would get unreadable fast for places with many tags)
-//   - a small badge in the top-right corner if the place is "to try"
-// Clusters (zoomed out, pins close together) render as a plain light-grey
-// filled circle with the count of aggregated places, via the
-// @googlemaps/markerclusterer library (loaded from a CDN <script> tag in
-// index.html, same "no bundler" approach as the rest of the app).
+// Pin design:
+//   - un simple cercle gris clair, SANS icône ni tranches colorées
+//   - un petit badge en haut à droite si le lieu est "à tester"
+// Les clusters (dézoom, pins proches) reprennent exactement le même cercle,
+// en plus grand et avec le nombre de lieux agrégés au centre — d'où les
+// constantes CIRCLE_* partagées ci-dessous : pin et cluster ne peuvent pas
+// diverger visuellement. Le clustering vient de @googlemaps/markerclusterer
+// (chargé par <script> CDN dans index.html, même approche « sans bundler »
+// que le reste de l'app).
 // ============================================================================
 
-import { pinIcon, isToTry, CATEGORY_COLORS } from './helpers.js';
+import { isToTry } from './helpers.js';
 
 let map = null;
 let markers = new Map(); // place id -> google.maps.Marker
@@ -22,51 +21,52 @@ let clusterer = null;
 let onPinClick = null;
 
 const PIN_SIZE = 40;
+const CLUSTER_SIZE = 44;
 
-// Builds a data: URL for a place's pin icon as inline SVG. Doing this per
-// place (rather than one shared icon) is what lets each pin show its own
-// emoji + category-color slices + to-try badge.
+// Style de cercle commun aux pins et aux clusters.
+const CIRCLE_FILL = '#d9d9d9';
+const CIRCLE_STROKE = '#bdbdbd';
+const CIRCLE_STROKE_WIDTH = 1.5;
+
+// Rayon du cercle dans une boîte de `size`, en laissant la place au trait.
+function circleRadius(size) {
+  return size / 2 - CIRCLE_STROKE_WIDTH / 2 - 1;
+}
+
+function circleSvg(size) {
+  const c = size / 2;
+  return `<circle cx="${c}" cy="${c}" r="${circleRadius(size)}" fill="${CIRCLE_FILL}"` +
+         ` stroke="${CIRCLE_STROKE}" stroke-width="${CIRCLE_STROKE_WIDTH}" />`;
+}
+
+function svgDataUrl(svg) {
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+}
+
+// Icône d'un pin individuel : le cercle gris, plus le badge "à tester".
+// Toujours généré par lieu (et non partagé) parce que le badge dépend du
+// statut du lieu.
 function buildPinSvg(place) {
-  const r = PIN_SIZE / 2;
-  const cx = r;
-  const cy = r;
-  const ringWidth = 5;
-  const innerR = r - ringWidth - 1;
-
-  // One slice per distinct tag category present on the place, in a fixed
-  // order so colors are consistent across pins.
-  const categories = Object.keys(CATEGORY_COLORS).filter((cat) =>
-    place.tags.some((t) => t.category === cat)
-  );
-  const slices = categories.length ? categories : ['type_de_lieu']; // never render an empty ring
-  const anglePer = (2 * Math.PI) / slices.length;
-
-  const arcPaths = slices
-    .map((cat, i) => {
-      const start = i * anglePer - Math.PI / 2;
-      const end = start + anglePer;
-      const x1 = cx + r * Math.cos(start);
-      const y1 = cy + r * Math.sin(start);
-      const x2 = cx + r * Math.cos(end);
-      const y2 = cy + r * Math.sin(end);
-      const largeArc = anglePer > Math.PI ? 1 : 0;
-      return `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${CATEGORY_COLORS[cat]}" />`;
-    })
-    .join('');
-
   const badge = isToTry(place)
     ? `<circle cx="${PIN_SIZE - 6}" cy="6" r="6" fill="#1a73e8" stroke="#fff" stroke-width="1.5" />`
     : '';
-
-  const svg = `
+  return svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${PIN_SIZE}" height="${PIN_SIZE}" viewBox="0 0 ${PIN_SIZE} ${PIN_SIZE}">
-      <g>${arcPaths}</g>
-      <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#ffffff" stroke="#e0e0e0" stroke-width="1" />
-      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="16">${pinIcon(place)}</text>
+      ${circleSvg(PIN_SIZE)}
       ${badge}
     </svg>
-  `;
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  `);
+}
+
+// Icône d'un cluster : le même cercle, en plus grand, avec le compte.
+function buildClusterSvg(count) {
+  const c = CLUSTER_SIZE / 2;
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${CLUSTER_SIZE}" height="${CLUSTER_SIZE}" viewBox="0 0 ${CLUSTER_SIZE} ${CLUSTER_SIZE}">
+      ${circleSvg(CLUSTER_SIZE)}
+      <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="sans-serif" fill="#333">${count}</text>
+    </svg>
+  `);
 }
 
 export function initMap(container, center) {
@@ -112,8 +112,8 @@ export function renderMarkers(places) {
     return marker;
   });
 
-  // markerClusterer.MarkerClusterer is the global exposed by the CDN build.
-  // Renderer override: plain light-grey circle + count, per SPEC.md.
+  // markerClusterer.MarkerClusterer est le global exposé par le build CDN.
+  // Rendu personnalisé : le même cercle gris que les pins, avec le compte.
   clusterer = new markerClusterer.MarkerClusterer({
     map,
     markers: newMarkers,
@@ -122,16 +122,9 @@ export function renderMarkers(places) {
         new google.maps.Marker({
           position,
           icon: {
-            url:
-              'data:image/svg+xml;charset=UTF-8,' +
-              encodeURIComponent(
-                `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44">
-                   <circle cx="22" cy="22" r="20" fill="#d9d9d9" stroke="#bdbdbd" stroke-width="1.5" />
-                   <text x="22" y="22" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="sans-serif" fill="#333">${count}</text>
-                 </svg>`
-              ),
-            scaledSize: new google.maps.Size(44, 44),
-            anchor: new google.maps.Point(22, 22),
+            url: buildClusterSvg(count),
+            scaledSize: new google.maps.Size(CLUSTER_SIZE, CLUSTER_SIZE),
+            anchor: new google.maps.Point(CLUSTER_SIZE / 2, CLUSTER_SIZE / 2),
           },
           zIndex: 1000 + count,
         }),

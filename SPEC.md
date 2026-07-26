@@ -42,6 +42,7 @@ Two roles only, for now:
 Each place has:
 
 - `name`, `address` (with lat/lng from geocoding), `date_added`
+- `google_place_id` — Google's identifier for the place, captured in the same Places request as the address. Powers the detail sheet's "Y aller" button, which opens the place's **Google Maps listing** (`/maps/place/?q=place_id:…`) rather than a directions URL — a directions URL can be hijacked by a third-party navigation app (Waze, Plans…). Empty for places saved before this column existed: the sheet then falls back to a Google Maps search URL, which also lands on a place listing.
 - `website`, `phone` — fetched once from Google Places when the place is added or edited (part of the same place-details request as the address), then stored in Supabase. The place detail sheet reads these stored values directly and makes **no** Places API call on open. Empty value = not found at save time → the matching action button (Site web / Appeler) is shown disabled. Re-selecting the place in the edit form's search field refreshes them.
 - **Rating**: 0 to 5 (0.5 increments), stored as a number — filterable via a range (two-handle slider)
 - **5 review fields** (replacing Mapstr's single free-text comment):
@@ -83,7 +84,7 @@ Each place has:
    - Google Map centered on the user's geolocation on open; falls back to Paris center if geolocation is denied.
    - All matching pins shown (filtered by active filters + search).
    - Pins cluster when zoomed out and close together: a light grey filled circle showing the count of aggregated places.
-   - Pin design: icon = place type emoji; circle divided into colored slices representing the place's tags; a small badge in the top-right corner of the pin if status = "to try".
+   - Pin design: a plain light-grey circle — no icon, no colored slices — plus a small badge in the top-right corner if status = "to try". Clusters use the exact same circle (shared constants in `js/map.js`), larger and with the aggregated count inside, so individual pins and clusters stay visually consistent.
    - Top-left button opens a filter side panel (covers half the screen width), light grey background, listing all filter categories (order: Type de lieu, Cuisine, Spécial, Prix, Note as a two-handle 0–5 slider, Statut). Tags within a category are alphabetically sorted, ignoring any leading emoji.
    - Map updates live as filters/search change.
    - Top-right button toggles to a **list view** of the same filtered results, sortable by distance, rating, or price (not by type/cuisine/special, since those aren't ordinal).
