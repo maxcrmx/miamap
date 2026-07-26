@@ -68,29 +68,49 @@
   </div>
 </div>
 
-<!-- ============================== MAIN SCREEN ============================== -->
+<!-- ============================== ÉCRAN PRINCIPAL ============================== -->
+<!--
+  Réf. visuelle : reference-ui/01-accueil.jpeg (Mapstr).
+  - En haut, des contrôles qui FLOTTENT au-dessus de la carte : bouton rond
+    "filtres" à gauche, pilule Carte/Liste au centre, bouton rond "loupe" à
+    droite (il déplie la barre de recherche par nom, exigée par SPEC.md).
+  - En vue liste, ce même bloc devient une barre blanche normale (classe
+    .list-mode posée sur #main-screen par js/app.js) pour ne pas recouvrir
+    les premières lignes de la liste.
+  - En bas : barre blanche avec le gros "+" jaune centré et la roue dentée
+    Settings à droite. Les deux sont admin-only, donc toute la barre l'est.
+-->
 <div id="main-screen" class="top-screen">
-  <div class="topbar">
-    <button id="filter-open-btn" class="icon-btn" aria-label="Filtres">☰</button>
-    <input type="text" id="search-input" placeholder="Rechercher un lieu..." autocomplete="off" />
-    <button id="view-toggle-btn" class="icon-btn">☰ Liste</button>
-  </div>
+  <div class="top-overlay" id="top-overlay">
+    <div class="map-controls">
+      <button id="filter-open-btn" class="round-btn" aria-label="Filtres">☰</button>
+      <div class="view-pill" role="tablist" aria-label="Basculer carte ou liste">
+        <button id="view-map-btn" class="view-pill-seg active" role="tab">Carte</button>
+        <button id="view-list-btn" class="view-pill-seg" role="tab">Liste</button>
+      </div>
+      <button id="search-toggle-btn" class="round-btn" aria-label="Rechercher un lieu">🔍</button>
+    </div>
 
-  <!-- Sort control, only meaningful in list view but always present for simplicity -->
-  <div class="sort-row" id="sort-row">
-    <span>Trier par :</span>
-    <label><input type="radio" name="sort" value="distance" checked /> Distance</label>
-    <label><input type="radio" name="sort" value="rating" /> Note</label>
-    <label><input type="radio" name="sort" value="price" /> Prix</label>
+    <!-- Recherche par nom, repliée par défaut (la loupe l'ouvre/ferme). -->
+    <div class="search-row hidden" id="search-row">
+      <input type="text" id="search-input" placeholder="Rechercher un lieu..." autocomplete="off" />
+    </div>
+
+    <!-- Tri : visible uniquement en vue liste (géré par js/app.js). -->
+    <div class="sort-row hidden" id="sort-row">
+      <span>Trier par :</span>
+      <label><input type="radio" name="sort" value="distance" checked /> Distance</label>
+      <label><input type="radio" name="sort" value="rating" /> Note</label>
+      <label><input type="radio" name="sort" value="price" /> Prix</label>
+    </div>
   </div>
 
   <div id="map-container"></div>
   <div id="list-container" class="hidden"></div>
 
-  <div class="bottom-bar">
-    <div class="bottom-bar-spacer"></div>
-    <button id="add-place-btn" class="fab admin-only hidden" aria-label="Ajouter un lieu">+</button>
-    <button id="settings-open-btn" class="icon-btn admin-only hidden" aria-label="Réglages">⚙️</button>
+  <div class="bottom-bar admin-only hidden">
+    <button id="add-place-btn" class="fab" aria-label="Ajouter un lieu">+</button>
+    <button id="settings-open-btn" class="round-btn bottom-bar-right" aria-label="Réglages">⚙️</button>
   </div>
 </div>
 
@@ -110,49 +130,82 @@
   <div id="place-sheet-content" class="sheet-content"></div>
 </div>
 
-<!-- ============================== ADD/EDIT PLACE FORM ============================== -->
+<!-- ============================== FORMULAIRE AJOUT/ÉDITION ============================== -->
+<!--
+  Réf. visuelle : reference-ui/03-ajout-lieu.jpeg (recherche unique, pas
+  d'onglets "Par nom / Par adresse / Par coordonnées") et
+  reference-ui/04-fiche-edition.jpeg (pilules de tags colorées avec croix,
+  bouton "+ Créer un nouveau tag", statut en deux boutons toggle).
+
+  Le flux : un SEUL champ de recherche Google Places en haut. Choisir une
+  suggestion remplit la carte "lieu sélectionné" (nom modifiable + adresse).
+  Le contenu des sections tags/statut est généré par js/place-form.js.
+-->
 <div id="place-form-screen" class="top-screen overlay-screen admin-only">
-  <div class="topbar">
-    <button type="button" id="place-form-close-x" class="icon-btn">← Retour</button>
-    <h2 id="place-form-title">Ajouter un lieu</h2>
+  <div class="topbar form-topbar">
+    <button type="button" id="place-form-close-x" class="round-btn" aria-label="Fermer">✕</button>
+    <h2 id="place-form-title">Enregistrer un lieu</h2>
+    <span class="topbar-spacer"></span>
   </div>
   <form id="place-form" class="form-body">
-    <label class="form-label">Nom
-      <input type="text" id="place-form-name" required />
-    </label>
-
-    <label class="form-label">Adresse
-      <input type="text" id="place-form-address" placeholder="Commence à taper une adresse..." autocomplete="off" required />
-    </label>
-    <p id="place-form-address-status" class="status-text"></p>
-    <div id="place-form-address-suggestions" class="address-suggestions"></div>
-
-    <div id="place-form-tags"></div>
-
-    <label class="form-label">Note (laisser vide si non testé)
-      <div class="rating-input-row">
-        <input type="number" id="place-form-rating" min="0" max="5" step="0.5" placeholder="à définir" />
-        <button type="button" id="place-form-rating-clear" class="btn-secondary btn-small">Effacer</button>
-      </div>
-    </label>
-
-    <label class="form-label">Les 👍 (ce qui est top)
-      <textarea id="place-form-top" rows="3"></textarea>
-    </label>
-    <label class="form-label">Les 🤷 (ce qui est bof)
-      <textarea id="place-form-bof" rows="3"></textarea>
-    </label>
-    <label class="form-label">Remarques
-      <textarea id="place-form-remarks" rows="3"></textarea>
-    </label>
-    <label class="form-label">Commentaire général
-      <textarea id="place-form-comment" rows="2"></textarea>
-    </label>
-
-    <div class="form-actions">
-      <button type="button" id="place-form-cancel" class="btn-secondary">Annuler</button>
-      <button type="submit" class="btn-primary">Enregistrer</button>
+    <div class="place-search-block">
+      <input type="text" id="place-form-search" class="place-search-input"
+             placeholder="Rechercher son nom ou son adresse..." autocomplete="off" />
+      <p id="place-form-address-status" class="status-text"></p>
+      <div id="place-form-address-suggestions" class="address-suggestions"></div>
     </div>
+
+    <!-- Carte du lieu choisi : cachée tant que rien n'est sélectionné (en
+         mode édition, elle est pré-remplie avec le lieu existant). -->
+    <div id="place-form-selected" class="place-selected-card hidden">
+      <span class="place-selected-pin">📍</span>
+      <div class="place-selected-body">
+        <input type="text" id="place-form-name" class="place-selected-name" placeholder="Nom du lieu" />
+        <p id="place-form-selected-address" class="place-selected-address"></p>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3 class="form-section-title">Ajoutez des tags pour catégoriser ce lieu</h3>
+      <div id="place-form-tags"></div>
+    </div>
+
+    <div class="form-section">
+      <h3 class="form-section-title">Choisissez le statut du lieu</h3>
+      <div id="place-form-statut" class="statut-toggle-row"></div>
+    </div>
+
+    <div class="form-section">
+      <!-- Note : bloc affiché UNIQUEMENT si le statut "Déjà testé" est
+           sélectionné (un lieu pas encore testé n'a pas de note). La valeur
+           reste un nombre, conservée dans l'input caché ci-dessous ; les
+           étoiles sont pilotées par js/rating-stars.js (clic + glisser). -->
+      <div class="form-label hidden" id="place-form-rating-block">
+        <span>Note</span>
+        <div class="rating-stars-row">
+          <div id="place-form-stars" class="stars stars-input"></div>
+          <span id="place-form-rating-value" class="rating-value"></span>
+          <button type="button" id="place-form-rating-clear" class="btn-secondary btn-small">Effacer</button>
+        </div>
+        <input type="hidden" id="place-form-rating" />
+      </div>
+
+      <label class="form-label">👍 Top
+        <textarea id="place-form-top" rows="3"></textarea>
+      </label>
+      <label class="form-label">🤷 Flop
+        <textarea id="place-form-bof" rows="3"></textarea>
+      </label>
+      <label class="form-label">💬 Remarques
+        <textarea id="place-form-remarks" rows="3"></textarea>
+      </label>
+      <label class="form-label">📝 Commentaire général
+        <textarea id="place-form-comment" rows="2"></textarea>
+      </label>
+    </div>
+
+    <!-- Gros bouton jaune pleine largeur, comme "Mettre à jour" sur la réf. -->
+    <button type="submit" class="btn-save">Enregistrer</button>
   </form>
 </div>
 

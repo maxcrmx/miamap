@@ -48,9 +48,17 @@ export function applyFilters(places) {
   return places.filter(placeMatchesFilters);
 }
 
-// Renders the filter panel into `root` (a DOM element) and calls
-// `onChange()` (no args — callers re-read filterState/searchText) whenever
-// something changes.
+// Dessine le panneau de filtres dans `root` et appelle `onChange()` (sans
+// argument — les appelants relisent filterState/searchText) à chaque
+// changement.
+//
+// Style des tags (réf. reference-ui/02-filtres.jpeg + pilules de
+// 04-fiche-edition.jpeg) : pilules colorées par catégorie. Comportement au
+// clic demandé :
+//   - aucune sélection dans la catégorie → toutes les pilules en couleur ;
+//   - dès qu'un tag est sélectionné → lui reste coloré (avec une croix ✕
+//     pour le retirer), les autres de la MÊME catégorie passent en gris
+//     tant qu'ils ne sont pas sélectionnés à leur tour.
 export function renderFilterPanel(root, onChange) {
   root.innerHTML = '';
 
@@ -62,38 +70,51 @@ export function renderFilterPanel(root, onChange) {
     heading.textContent = label;
     section.appendChild(heading);
 
-    if (key === 'prix') {
-      // Prix is presented as a dropdown-style single pick per SPEC.md, but
-      // internally it's still "OR within category" if more than one is
-      // selected — a plain multi-select list of checkboxes covers this
-      // without needing special-case filtering logic.
-    }
-
     const list = document.createElement('div');
     list.className = 'filter-tag-list';
-    for (const tag of tagsByCategory(key)) {
-      const id = `filter-${tag.id}`;
-      const item = document.createElement('label');
-      item.className = 'filter-tag-item';
-      item.htmlFor = id;
-      item.innerHTML = `<input type="checkbox" id="${id}" /><span>${tag.emoji} ${tag.label}</span>`;
-      const checkbox = item.querySelector('input');
-      checkbox.checked = filterState.categories[key].has(tag.id);
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) filterState.categories[key].add(tag.id);
-        else filterState.categories[key].delete(tag.id);
-        onChange();
-      });
-      list.appendChild(item);
-    }
+
+    // Redessine uniquement les pilules de CETTE catégorie (l'état
+    // sélectionné/grisé de chaque pilule dépend des autres de la catégorie).
+    const redrawPills = () => {
+      list.innerHTML = '';
+      const selected = filterState.categories[key];
+      for (const tag of tagsByCategory(key)) {
+        const isSelected = selected.has(tag.id);
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        // .dimmed = gris : seulement si un AUTRE tag de la catégorie est
+        // sélectionné et pas celui-ci.
+        pill.className =
+          `tag-pill cat-${key}` + (!isSelected && selected.size > 0 ? ' dimmed' : '');
+        pill.innerHTML =
+          `<span>${tag.emoji} ${escapeText(tag.label)}</span>` +
+          (isSelected ? '<span class="pill-x">✕</span>' : '');
+        pill.addEventListener('click', () => {
+          if (isSelected) selected.delete(tag.id);
+          else selected.add(tag.id);
+          redrawPills();
+          onChange();
+        });
+        list.appendChild(pill);
+      }
+    };
+    redrawPills();
+
     section.appendChild(list);
     root.appendChild(section);
 
-    // Rating slider goes after "Prix", before "Statut", per SPEC.md order.
+    // Le slider de note s'insère après "Prix", avant "Statut" (ordre SPEC.md).
     if (key === 'prix') {
       root.appendChild(buildRatingSlider(onChange));
     }
   }
+}
+
+// Mini-échappement pour injecter un label dans du innerHTML sans risque.
+function escapeText(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
 }
 
 function buildRatingSlider(onChange) {

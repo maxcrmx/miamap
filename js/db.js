@@ -14,7 +14,7 @@
 import { sb } from './supabase-client.js';
 
 const PLACE_SELECT = `
-  id, name, address, lat, lng, rating, top, bof, remarks, comment, date_added,
+  id, name, address, lat, lng, rating, top, bof, remarks, comment, website, phone, date_added,
   place_tags ( added_at, tags ( id, category, emoji, label ) )
 `;
 

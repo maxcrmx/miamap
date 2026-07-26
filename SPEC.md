@@ -42,6 +42,7 @@ Two roles only, for now:
 Each place has:
 
 - `name`, `address` (with lat/lng from geocoding), `date_added`
+- `website`, `phone` — fetched once from Google Places when the place is added or edited (part of the same place-details request as the address), then stored in Supabase. The place detail sheet reads these stored values directly and makes **no** Places API call on open. Empty value = not found at save time → the matching action button (Site web / Appeler) is shown disabled. Re-selecting the place in the edit form's search field refreshes them.
 - **Rating**: 0 to 5 (0.5 increments), stored as a number — filterable via a range (two-handle slider)
 - **5 review fields** (replacing Mapstr's single free-text comment):
   - `top` — what's great about the place
@@ -87,7 +88,7 @@ Each place has:
    - Map updates live as filters/search change.
    - Top-right button toggles to a **list view** of the same filtered results, sortable by distance, rating, or price (not by type/cuisine/special, since those aren't ordinal).
    - Bottom white bar, persistent on the map screen, with a large yellow "+" button to add a place, and a gear icon (admin only) opening Settings.
-3. **Place detail** (tap a pin or list item): opens as a sheet covering 3/4 of the screen height. Swipe down from the top to dismiss. Shows all place info (tags, rating, the 5 fields). A button at the top opens the place's Google Maps listing in a new tab/app (external link, not embedded). An "Edit" button (admin only) reopens the add/edit form pre-filled. A "Delete" button (admin only) asks for confirmation before deleting.
+3. **Place detail** (tap a pin or list item): opens as a sheet covering 3/4 of the screen height. Swipe down from the top to dismiss. Shows all place info (tags, rating, the 5 fields). Bottom action row (Mapstr-style): "Y aller" (Google Maps directions, external link), "Site web" and "Appeler" (from the stored `website`/`phone` columns — no Places API call on open; disabled when empty), and "Modifier" (admin only) which reopens the add/edit form pre-filled. A "Supprimer" link (admin only) asks for confirmation before deleting.
 4. **Add/Edit place form** (admin only, opened by "+" or "Edit"):
    - Address field with live Google Places autocomplete as the admin types, to ensure a valid geocoded address.
      - If no results: show "aucun lieu trouvé".

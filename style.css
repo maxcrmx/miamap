@@ -29,6 +29,10 @@ html, body {
   z-index: 10;
 }
 .top-screen.active { display: flex; }
+/* Les écrans superposés (formulaire, réglages) s'ouvrent avec .open depuis
+   le JS — sans cette règle ils restaient invisibles (cause du bug "les
+   boutons + et Settings ne font rien"). */
+.top-screen.open { display: flex; }
 .overlay-screen { z-index: 40; }
 
 /* ---------------------------------------------------------------------- */
@@ -62,27 +66,59 @@ html, body {
 .status-text { font-size: 13px; color: #666; min-height: 16px; }
 
 /* ---------------------------------------------------------------------- */
-/* Main screen chrome (topbar / sort row / bottom bar)                    */
+/* Écran principal — contrôles flottants + barre du bas                   */
+/* Réf. : reference-ui/01-accueil.jpeg (Mapstr) : boutons ronds blancs,   */
+/* pilule Carte/Liste centrée, gros "+" jaune centré en bas.              */
 /* ---------------------------------------------------------------------- */
-#main-screen { padding-top: env(safe-area-inset-top); }
-.topbar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px; border-bottom: 1px solid #eee;
+
+/* Bloc supérieur : par défaut il FLOTTE au-dessus de la carte. En vue
+   liste (#main-screen.list-mode, posé par js/app.js), il redevient une
+   barre blanche dans le flux pour ne pas masquer la liste. */
+.top-overlay {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  padding: calc(env(safe-area-inset-top) + 10px) 12px 0;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none; /* la carte reste cliquable entre les contrôles */
 }
-.icon-btn {
-  background: #f0f0f0; border: none; border-radius: 10px;
-  padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;
+.top-overlay > * { pointer-events: auto; }
+#main-screen.list-mode .top-overlay {
+  position: static; background: #fff; border-bottom: 1px solid #eee;
+  padding-bottom: 10px; pointer-events: auto;
 }
-.topbar h2 { font-size: 17px; font-weight: 600; }
+
+.map-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Boutons ronds blancs (filtres, loupe, roue dentée) comme sur Mapstr. */
+.round-btn {
+  background: #fff; border: none; border-radius: 50%;
+  width: 44px; height: 44px; font-size: 18px; cursor: pointer;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+
+/* Pilule segmentée Carte/Liste : segment actif sombre, texte blanc. */
+.view-pill {
+  display: flex; background: #fff; border-radius: 22px; padding: 3px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+}
+.view-pill-seg {
+  border: none; background: none; border-radius: 19px;
+  padding: 8px 20px; font-size: 15px; font-weight: 600; color: #1a1a1a; cursor: pointer;
+}
+.view-pill-seg.active { background: #3a3a3c; color: #fff; }
+
+.search-row { display: flex; }
 #search-input {
-  flex: 1; border: 1.5px solid #ddd; border-radius: 10px;
-  padding: 10px 14px; font-size: 15px; outline: none;
+  flex: 1; border: none; border-radius: 12px;
+  padding: 12px 14px; font-size: 15px; outline: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18); background: #fff;
 }
-#search-input:focus { border-color: #1a1a1a; }
+#main-screen.list-mode #search-input { box-shadow: none; background: #f0f0f0; }
 
 .sort-row {
-  display: flex; align-items: center; gap: 12px; padding: 8px 12px;
-  font-size: 13px; color: #555; border-bottom: 1px solid #eee; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 12px; padding: 8px 4px 0;
+  font-size: 13px; color: #555; flex-wrap: wrap;
+  background: rgba(255,255,255,0.92); border-radius: 12px; padding: 8px 12px;
 }
 .sort-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
 
@@ -100,17 +136,23 @@ html, body {
 .list-row-name { font-weight: 600; font-size: 15px; }
 .list-row-meta { font-size: 13px; color: #777; }
 
+/* Barre du bas : blanche, "+" jaune centré qui déborde vers le haut,
+   roue dentée à droite. Toute la barre est admin-only (les lecteurs
+   n'ont ni ajout ni réglages). */
 .bottom-bar {
-  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
-  padding: 12px calc(env(safe-area-inset-bottom) + 12px) 12px 12px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px calc(env(safe-area-inset-bottom) + 12px) 14px 12px;
   border-top: 1px solid #eee; background: #fff;
 }
-.bottom-bar-spacer { flex: 1; }
 .fab {
-  background: #f5d842; color: #1a1a1a; border: none; border-radius: 50%;
-  width: 56px; height: 56px; font-size: 28px; font-weight: 600; cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  background: #f5c518; color: #fff; border: none; border-radius: 50%;
+  width: 64px; height: 64px; font-size: 34px; font-weight: 500; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  margin-top: -28px; /* déborde au-dessus de la barre, comme sur Mapstr */
+  line-height: 1;
 }
+.bottom-bar-right { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
 
 /* ---------------------------------------------------------------------- */
 /* Filter side panel (half screen width, slides from the left)            */
@@ -132,8 +174,37 @@ html, body {
 
 .filter-section { margin-bottom: 20px; }
 .filter-section h3 { font-size: 14px; text-transform: uppercase; color: #888; margin-bottom: 8px; }
-.filter-tag-list { display: flex; flex-direction: column; gap: 6px; }
-.filter-tag-item { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+
+/* ---------------------------------------------------------------------- */
+/* Pilules de tags — style commun panneau filtres / formulaire / fiche.   */
+/* Réf. : reference-ui/04-fiche-edition.jpeg : pilule à fond coloré,      */
+/* texte blanc, croix ✕ quand le tag est sélectionné/supprimable.         */
+/* Couleur par catégorie (fidèle à Mapstr) : type/cuisine/spécial gris,   */
+/* prix bleu, statut jaune. --pill est posée par catégorie ci-dessous.    */
+/* ---------------------------------------------------------------------- */
+.tag-pill {
+  --pill: #8e8e93;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; border-radius: 8px; padding: 7px 12px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--pill); color: #fff; white-space: nowrap;
+}
+.tag-pill .pill-x {
+  font-weight: 700; padding-left: 4px; border-left: 1.5px solid rgba(255,255,255,0.5);
+}
+/* État "éteint" : gris clair. Utilisé (a) dans le panneau filtres pour les
+   tags non sélectionnés d'une catégorie où un autre tag est sélectionné,
+   (b) dans le formulaire pour les tags disponibles non encore ajoutés. */
+.tag-pill.dimmed { background: #e3e3e6; color: #8e8e93; }
+
+.cat-type_de_lieu { --pill: #8e8e93; }
+.cat-cuisine      { --pill: #8e8e93; }
+.cat-special      { --pill: #8e8e93; }
+.cat-prix         { --pill: #29b6f6; }
+.cat-statut       { --pill: #f5c518; }
+
+/* Dans le panneau filtres, les pilules s'enchaînent en "nuage". */
+.filter-tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .rating-slider { position: relative; height: 24px; margin: 8px 0; }
 .rating-slider-track {
@@ -171,16 +242,77 @@ html, body {
 .sheet-handle-bar { width: 40px; height: 4px; border-radius: 2px; background: #ccc; }
 .sheet-content { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
 
-.place-maps-link { display: inline-block; font-size: 14px; color: #1a73e8; margin-bottom: 8px; }
-.place-title { font-size: 20px; font-weight: 700; }
-.place-address { color: #666; font-size: 14px; margin: 4px 0; }
-.place-status, .place-rating { font-size: 15px; margin: 6px 0; }
-.place-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-.tag-chip {
-  background: #f0f0f0; border-radius: 20px; padding: 4px 10px; font-size: 13px;
+/* Fiche lieu — réf. reference-ui/05-fiche-a-essayer.jpeg et
+   06-fiche-deja-teste.jpeg : interrupteur de statut + étoiles (si testé),
+   pilules de tags, puis rangée d'actions Y aller / Site web / Appeler /
+   Modifier en bas. */
+.place-title { font-size: 22px; font-weight: 700; }
+.place-address { color: #666; font-size: 14px; margin: 4px 0 12px; }
+
+/* Ligne statut : interrupteur style iOS avec l'emoji dans le bouton rond,
+   libellé à côté, étoiles à droite quand le lieu est "déjà testé". */
+.statut-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
 }
+.statut-switch {
+  position: relative; width: 58px; height: 34px; border: none; border-radius: 17px;
+  background: #e9e9eb; cursor: pointer; flex: none; transition: background 0.2s; padding: 0;
+}
+.statut-switch.on { background: #f5c518; }
+.statut-switch:disabled { cursor: default; }
+.statut-knob {
+  position: absolute; top: 2px; left: 2px; width: 30px; height: 30px;
+  border-radius: 50%; background: #fff; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.statut-switch.on .statut-knob { left: 26px; }
+.statut-label { font-size: 16px; font-weight: 500; }
+.statut-spacer { flex: 1; }
+
+/* Étoiles de notation (affichées seulement si "déjà testé"). Chaque étoile
+   est un bouton ; la demi-étoile est rendue par un dégradé sur le glyphe. */
+.stars { display: flex; gap: 2px; }
+.star {
+  border: none; background: none; font-size: 26px; line-height: 1;
+  color: #d9d9de; cursor: pointer; padding: 0 1px;
+}
+.star.full { color: #f5c518; }
+.star.half {
+  background: linear-gradient(90deg, #f5c518 50%, #d9d9de 50%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.stars.readonly .star { cursor: default; }
+
+/* Étoiles en mode SAISIE (formulaire) : plus grandes, et `touch-action:none`
+   pour que le glisser au doigt règle la note au lieu de faire défiler la page. */
+.stars-input { cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stars-input .star { font-size: 32px; }
+.rating-stars-row { display: flex; align-items: center; gap: 12px; }
+.rating-value { font-size: 15px; font-weight: 600; color: #666; min-width: 46px; }
+
+.place-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .place-field { font-size: 14px; color: #333; white-space: pre-wrap; margin-bottom: 8px; }
-.place-admin-actions { display: flex; gap: 10px; margin-top: 16px; }
+.place-added { font-size: 13px; color: #999; margin: 12px 0; }
+
+/* Rangée d'actions en bas de fiche : 4 boutons blancs bordés, icône
+   au-dessus du libellé, comme sur la réf. */
+.place-actions { display: flex; gap: 8px; margin-top: 8px; }
+.place-action {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #fff; border: 1.5px solid #ddd; border-radius: 12px;
+  padding: 10px 4px; font-size: 13px; font-weight: 500; color: #1a1a1a;
+  cursor: pointer; text-decoration: none;
+}
+.place-action-icon { font-size: 18px; }
+.place-action:disabled, .place-action.disabled {
+  opacity: 0.35; cursor: default; pointer-events: none;
+}
+.link-danger {
+  background: none; border: none; color: #c62828; font-size: 14px;
+  text-decoration: underline; cursor: pointer; margin: 16px auto 0; display: block;
+}
 
 /* ---------------------------------------------------------------------- */
 /* Buttons (shared)                                                       */
@@ -193,6 +325,13 @@ html, body {
 .btn-secondary { background: #f0f0f0; color: #1a1a1a; }
 .btn-danger { background: #fdecea; color: #c62828; }
 .btn-small { padding: 8px 12px; font-size: 13px; }
+/* Bouton rectangulaire discret (écran réglages : "← Retour", etc.). */
+.icon-btn {
+  background: #f0f0f0; border: none; border-radius: 10px;
+  padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.topbar { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid #eee; }
+.topbar h2 { font-size: 17px; font-weight: 600; }
 
 /* ---------------------------------------------------------------------- */
 /* Add/edit place form + Settings (share .form-body layout)               */
@@ -212,16 +351,48 @@ html, body {
 }
 .address-suggestion:active { background: #eee; }
 
-.form-tag-category { border-top: 1px solid #eee; padding-top: 12px; }
-.form-tag-category h4 { font-size: 14px; margin-bottom: 8px; }
-.required-mark { color: #c62828; }
-.tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.tag-chip-select {
-  border: 1.5px solid #ddd; background: #fff; border-radius: 20px;
-  padding: 6px 12px; font-size: 13px; cursor: pointer;
+/* --- Formulaire ajout/édition — réf. 03-ajout-lieu / 04-fiche-edition --- */
+.form-topbar { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.form-topbar h2 { flex: 1; text-align: center; font-size: 18px; }
+.topbar-spacer { width: 44px; flex: none; } /* équilibre le ✕ à gauche pour centrer le titre */
+
+.place-search-block { display: flex; flex-direction: column; gap: 6px; }
+.place-search-input {
+  border: none; background: #f0f0f0; border-radius: 12px;
+  padding: 14px; font-size: 15px; outline: none; width: 100%;
 }
-.tag-chip-select.selected { background: #f5d842; border-color: #f5d842; font-weight: 600; }
-.new-tag-row { display: flex; gap: 6px; }
+
+/* Carte du lieu sélectionné (pastille jaune + nom + adresse). */
+.place-selected-card {
+  display: flex; align-items: center; gap: 12px;
+  background: #fffdf2; border: 1px solid #f5e9b0; border-radius: 12px; padding: 12px;
+}
+.place-selected-pin {
+  width: 44px; height: 44px; border-radius: 50%; background: #f5c518;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex: none;
+}
+.place-selected-body { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.place-selected-name {
+  border: none; background: none; font-size: 17px; font-weight: 700;
+  outline: none; width: 100%; padding: 0;
+}
+.place-selected-address { font-size: 13px; color: #666; }
+
+.form-section { border-top: 6px solid #f2f2f4; margin: 4px -16px 0; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; }
+.form-section-title { font-size: 17px; font-weight: 700; }
+
+.form-tag-category h4 { font-size: 13px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+.required-mark { color: #c62828; }
+.tag-chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+
+/* "+ Créer un nouveau tag" : pilule jaune bordée (réf. 04), qui révèle la
+   ligne emoji + nom au clic. */
+.new-tag-toggle {
+  display: block; margin: 0 auto 10px; background: #fff; border: 1.5px solid #f5c518;
+  color: #f5a300; border-radius: 22px; padding: 9px 18px; font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+.new-tag-row { display: flex; gap: 6px; margin-bottom: 10px; }
 .new-tag-emoji { width: 46px; text-align: center; }
 .new-tag-emoji, .new-tag-label {
   border: 1.5px solid #ddd; border-radius: 8px; padding: 8px; font-size: 13px; outline: none;
@@ -229,8 +400,21 @@ html, body {
 .new-tag-label { flex: 1; }
 .new-tag-add { background: #f0f0f0; border: none; border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
 
-.form-actions { display: flex; gap: 10px; margin-top: 8px; }
-.form-actions button { flex: 1; }
+/* Statut : deux gros boutons toggle "À essayer / Déjà testé" (réf. 04). */
+.statut-toggle-row { display: flex; gap: 10px; }
+.statut-toggle {
+  flex: 1; border: 1.5px solid #eee; background: #fafafa; border-radius: 26px;
+  padding: 13px 8px; font-size: 15px; font-weight: 500; color: #999; cursor: pointer;
+}
+.statut-toggle.selected {
+  background: #fff8e0; border-color: #f5c518; color: #1a1a1a; font-weight: 600;
+}
+
+/* Bouton d'enregistrement pleine largeur, jaune (réf. "Mettre à jour"). */
+.btn-save {
+  background: #f5c518; color: #fff; border: none; border-radius: 26px;
+  padding: 16px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
 
 .rating-input-row { display: flex; gap: 8px; align-items: center; }
 .rating-input-row input[type="number"] { width: 90px; flex: none; }

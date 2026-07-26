@@ -7,3 +7,9 @@ mapstr.csv
 mapstr.geojson
 mapstr_parsed_review.json
 mapstr_parsed_review.csv
+
+# Captures de l'app Mapstr servant de référence visuelle pour refaire l'UI
+# (voir SPEC.md). Gardées en local uniquement : ce repo est public, donc tout
+# ce qui est commité ici est téléchargeable par n'importe qui — et ces
+# captures montrent le pseudo, l'avatar et des lieux enregistrés.
+reference-ui/

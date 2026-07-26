@@ -147,16 +147,32 @@ function rerenderCurrentView() {
   }
 }
 
-function toggleView() {
-  currentView = currentView === 'map' ? 'list' : 'map';
-  document.getElementById('map-container').classList.toggle('hidden', currentView !== 'map');
-  document.getElementById('list-container').classList.toggle('hidden', currentView !== 'list');
-  document.getElementById('view-toggle-btn').textContent = currentView === 'map' ? '☰ Liste' : '🗺️ Carte';
+// Bascule carte/liste pilotée par la pilule segmentée du haut (réf.
+// Mapstr 01-accueil). En vue liste : le bloc de contrôles du haut devient
+// une barre blanche (.list-mode, voir style.css) et la ligne de tri
+// apparaît ; en vue carte, le tri est masqué (il n'a de sens que trié).
+function setView(view) {
+  currentView = view;
+  const isMap = view === 'map';
+  document.getElementById('map-container').classList.toggle('hidden', !isMap);
+  document.getElementById('list-container').classList.toggle('hidden', isMap);
+  document.getElementById('view-map-btn').classList.toggle('active', isMap);
+  document.getElementById('view-list-btn').classList.toggle('active', !isMap);
+  document.getElementById('main-screen').classList.toggle('list-mode', !isMap);
+  document.getElementById('sort-row').classList.toggle('hidden', isMap);
   rerenderCurrentView();
 }
 
 function initMainScreenChrome() {
-  document.getElementById('view-toggle-btn').addEventListener('click', toggleView);
+  document.getElementById('view-map-btn').addEventListener('click', () => setView('map'));
+  document.getElementById('view-list-btn').addEventListener('click', () => setView('list'));
+
+  // La loupe déplie/replie la barre de recherche par nom.
+  document.getElementById('search-toggle-btn').addEventListener('click', () => {
+    const row = document.getElementById('search-row');
+    row.classList.toggle('hidden');
+    if (!row.classList.contains('hidden')) document.getElementById('search-input').focus();
+  });
 
   document.getElementById('filter-open-btn').addEventListener('click', () => {
     document.getElementById('filter-panel').classList.add('open');
@@ -201,6 +217,9 @@ function initMainScreenChrome() {
   initPlaceDetail({
     onEditRequested: (place) => openPlaceForm(place),
     onPlaceDeleted: () => refreshPlaces(),
+    // Déclenché quand la fiche modifie le lieu sur place (interrupteur de
+    // statut, clic sur les étoiles) : on rafraîchit carte/liste derrière.
+    onPlaceChanged: () => refreshPlaces(),
   });
 
   initPlaceForm({ onSaveComplete: () => refreshPlaces() });

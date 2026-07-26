@@ -198,6 +198,12 @@ create table if not exists public.places (
   bof         text not null default '',      -- "Les 🤷" — what's meh
   remarks     text not null default '',      -- "Remarque" — general notes
   comment     text not null default '',      -- free text, unused for now, kept for future use
+  -- Website + phone, fetched ONCE from Google Places when the place is
+  -- added/edited (js/place-form.js) and stored here, so opening a place
+  -- sheet costs zero Places API calls. Empty string = "not found at save
+  -- time" — the sheet then shows the matching action button disabled.
+  website     text not null default '',
+  phone       text not null default '',
   date_added  timestamptz not null default now(),
   created_by  uuid references public.profiles (id),
   created_at  timestamptz not null default now(),
