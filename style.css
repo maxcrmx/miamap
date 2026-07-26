@@ -8,6 +8,19 @@
    instead, since more than one can coexist with the main screen.
    ============================================================================ */
 
+/* Couleurs des pilules de tags, fixées PAR CATÉGORIE (pas par tag) : deux
+   tags de la même catégorie ont toujours le même fond, partout où ils sont
+   affichés (panneau filtres, fiche lieu, formulaire d'ajout). Regroupées
+   ici pour pouvoir les ajuster d'un seul endroit. */
+:root {
+  --tag-type_de_lieu: #EDEDEC; /* gris pâle */
+  --tag-cuisine:      #DDEEFF; /* bleu pâle */
+  --tag-special:      #FFF3CD; /* jaune pâle */
+  --tag-prix:         #D8F3DC; /* vert pâle */
+  --tag-statut:       #FFE3D3; /* orange pâle — catégorie hors palette demandée */
+  --tag-text:         #333;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%;
@@ -178,33 +191,77 @@ html, body {
 /* ---------------------------------------------------------------------- */
 /* Pilules de tags — style commun panneau filtres / formulaire / fiche.   */
 /* Réf. : reference-ui/04-fiche-edition.jpeg : pilule à fond coloré,      */
-/* texte blanc, croix ✕ quand le tag est sélectionné/supprimable.         */
-/* Couleur par catégorie (fidèle à Mapstr) : type/cuisine/spécial gris,   */
-/* prix bleu, statut jaune. --pill est posée par catégorie ci-dessous.    */
+/* croix ✕ quand le tag est sélectionné/supprimable. Le fond dépend de la */
+/* CATÉGORIE seule (variables --tag-* dans :root), pas du tag : deux tags */
+/* d'une même catégorie sont toujours de la même couleur.                 */
 /* ---------------------------------------------------------------------- */
 .tag-pill {
-  --pill: #8e8e93;
+  --pill: var(--tag-type_de_lieu);
   display: inline-flex; align-items: center; gap: 6px;
   border: none; border-radius: 8px; padding: 7px 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;
-  background: var(--pill); color: #fff; white-space: nowrap;
+  background: var(--pill); color: var(--tag-text); white-space: nowrap;
 }
 .tag-pill .pill-x {
-  font-weight: 700; padding-left: 4px; border-left: 1.5px solid rgba(255,255,255,0.5);
+  font-weight: 700; padding-left: 4px; border-left: 1.5px solid rgba(0,0,0,0.18);
 }
-/* État "éteint" : gris clair. Utilisé (a) dans le panneau filtres pour les
-   tags non sélectionnés d'une catégorie où un autre tag est sélectionné,
-   (b) dans le formulaire pour les tags disponibles non encore ajoutés. */
-.tag-pill.dimmed { background: #e3e3e6; color: #8e8e93; }
+/* État "éteint" : contour seul, pour rester distinguable des fonds pâles
+   ci-dessus. Utilisé (a) dans le panneau filtres pour les tags non
+   sélectionnés d'une catégorie où un autre tag est sélectionné, (b) dans le
+   formulaire pour les tags disponibles non encore ajoutés. */
+.tag-pill.dimmed {
+  background: #fff; color: #9a9a9f;
+  box-shadow: inset 0 0 0 1.5px #e3e3e6;
+}
 
-.cat-type_de_lieu { --pill: #8e8e93; }
-.cat-cuisine      { --pill: #8e8e93; }
-.cat-special      { --pill: #8e8e93; }
-.cat-prix         { --pill: #29b6f6; }
-.cat-statut       { --pill: #f5c518; }
+.cat-type_de_lieu { --pill: var(--tag-type_de_lieu); }
+.cat-cuisine      { --pill: var(--tag-cuisine); }
+.cat-special      { --pill: var(--tag-special); }
+.cat-prix         { --pill: var(--tag-prix); }
+.cat-statut       { --pill: var(--tag-statut); }
 
 /* Dans le panneau filtres, les pilules s'enchaînent en "nuage". */
 .filter-tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------------------------------------------------------------------- */
+/* Appui long sur une pilule de filtre (admin) : menu Modifier/Supprimer   */
+/* + modale d'édition émoji/nom. Voir js/filters.js.                       */
+/* ---------------------------------------------------------------------- */
+/* Sans ça, l'appui long sélectionne le texte / ouvre le "callout" iOS. */
+.filter-tag-list .tag-pill { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+
+/* Au-dessus du panneau de filtres (z-index 21) d'où il est ouvert. */
+.tag-menu {
+  position: fixed; z-index: 60;
+  background: #fff; border-radius: 12px; padding: 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; min-width: 160px;
+}
+.tag-menu button {
+  background: none; border: none; text-align: left; cursor: pointer;
+  padding: 10px 12px; font-size: 15px; color: #1a1a1a; border-radius: 8px;
+}
+.tag-menu button:hover { background: #f4f4f5; }
+
+.tag-modal-overlay {
+  position: fixed; inset: 0; z-index: 61;
+  background: rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.tag-modal {
+  background: #fff; border-radius: 16px; padding: 20px;
+  width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.tag-modal h3 { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+.tag-modal-row { display: flex; gap: 8px; }
+.tag-modal-row input {
+  border: 1px solid #ddd; border-radius: 10px; padding: 11px 12px; font-size: 15px;
+}
+.tag-modal-emoji { width: 68px; text-align: center; }
+.tag-modal-label { flex: 1; min-width: 0; }
+.tag-modal-row input:focus { outline: none; border-color: #1a1a1a; }
+.tag-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .rating-slider { position: relative; height: 24px; margin: 8px 0; }
 .rating-slider-track {

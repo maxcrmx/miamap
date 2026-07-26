@@ -8,7 +8,8 @@
 // ============================================================================
 
 import { TAG_CATEGORIES } from './config.js';
-import { tagsByCategory } from './tags.js';
+import { tagsByCategory, updateTag, deleteTag } from './tags.js';
+import { isAdmin } from './auth.js';
 
 // Current filter state, exported so map.js/list-view.js callers can read it
 // directly after a change event if needed.
@@ -59,8 +60,14 @@ export function applyFilters(places) {
 //   - dès qu'un tag est sélectionné → lui reste coloré (avec une croix ✕
 //     pour le retirer), les autres de la MÊME catégorie passent en gris
 //     tant qu'ils ne sont pas sélectionnés à leur tour.
-export function renderFilterPanel(root, onChange) {
+//
+// `onTagsChanged` (optionnel) est appelé quand un tag a été renommé ou
+// supprimé depuis le panneau (appui long sur une pilule, admin uniquement) :
+// l'appelant doit recharger les tags et les lieux, puis redessiner le
+// panneau — voir js/app.js.
+export function renderFilterPanel(root, onChange, onTagsChanged = null) {
   root.innerHTML = '';
+  closeTagMenu();
 
   for (const { key, label } of TAG_CATEGORIES) {
     const section = document.createElement('div');
@@ -89,7 +96,16 @@ export function renderFilterPanel(root, onChange) {
         pill.innerHTML =
           `<span>${tag.emoji} ${escapeText(tag.label)}</span>` +
           (isSelected ? '<span class="pill-x">✕</span>' : '');
+        // Appui long (admin) : mini menu Modifier / Supprimer. `wasLongPress`
+        // dit si le clic qui suit vient de conclure un appui long — dans ce
+        // cas il ne doit PAS aussi (dé)sélectionner le filtre.
+        const wasLongPress =
+          onTagsChanged && isAdmin()
+            ? attachLongPress(pill, (x, y) => openTagMenu(tag, x, y, onTagsChanged))
+            : () => false;
+
         pill.addEventListener('click', () => {
+          if (wasLongPress()) return;
           if (isSelected) selected.delete(tag.id);
           else selected.add(tag.id);
           redrawPills();
@@ -115,6 +131,198 @@ function escapeText(str) {
   const div = document.createElement('div');
   div.textContent = str ?? '';
   return div.innerHTML;
+}
+
+// ----------------------------------------------------------------------------
+// Appui long sur une pilule → menu Modifier / Supprimer (admin uniquement)
+// ----------------------------------------------------------------------------
+
+const LONG_PRESS_MS = 500;
+// Au-delà de ce déplacement, l'appui est considéré comme un scroll du
+// panneau, pas comme un appui long.
+const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
+
+// Branche la détection d'appui long (tactile + souris) sur `el` et appelle
+// `handler(x, y)` avec les coordonnées écran du point d'appui. Renvoie une
+// fonction qui dit si le dernier appui était un appui long, pour que le
+// handler de `click` (déclenché juste après le touchend/mouseup) puisse
+// s'abstenir.
+function attachLongPress(el, handler) {
+  let timer = null;
+  let startX = 0;
+  let startY = 0;
+  let fired = false;
+
+  const cancel = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+
+  const start = (x, y) => {
+    cancel();
+    fired = false;
+    startX = x;
+    startY = y;
+    timer = setTimeout(() => {
+      timer = null;
+      fired = true;
+      handler(x, y);
+    }, LONG_PRESS_MS);
+  };
+
+  const moved = (x, y) => {
+    if (Math.hypot(x - startX, y - startY) > LONG_PRESS_MOVE_TOLERANCE_PX) cancel();
+  };
+
+  el.addEventListener('touchstart', (e) => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  el.addEventListener('touchmove', (e) => moved(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('touchcancel', cancel);
+
+  el.addEventListener('mousedown', (e) => {
+    if (e.button === 0) start(e.clientX, e.clientY);
+  });
+  el.addEventListener('mousemove', (e) => {
+    if (timer) moved(e.clientX, e.clientY);
+  });
+  el.addEventListener('mouseup', cancel);
+  el.addEventListener('mouseleave', cancel);
+
+  // Sur desktop, l'appui long de la souris n'ouvre pas de menu natif, mais
+  // sur mobile un appui maintenu déclenche le menu contextuel du navigateur
+  // (copier / partager…) : on le neutralise sur les pilules.
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  return () => fired;
+}
+
+let openMenuEl = null;
+
+function closeTagMenu() {
+  if (!openMenuEl) return;
+  openMenuEl.remove();
+  openMenuEl = null;
+  document.removeEventListener('pointerdown', onDocPointerDown, true);
+  window.removeEventListener('scroll', closeTagMenu, true);
+}
+
+function onDocPointerDown(e) {
+  if (openMenuEl && !openMenuEl.contains(e.target)) closeTagMenu();
+}
+
+// Menu contextuel positionné près du point d'appui. `position: fixed` (via
+// .tag-menu) : les coordonnées sont donc celles du viewport, celles que
+// donnent déjà les events tactiles/souris.
+function openTagMenu(tag, x, y, onTagsChanged) {
+  closeTagMenu();
+
+  const menu = document.createElement('div');
+  menu.className = 'tag-menu';
+  menu.innerHTML = `
+    <button type="button" data-action="edit">✏️ Modifier</button>
+    <button type="button" data-action="delete">🗑️ Supprimer</button>
+  `;
+  // Posé hors écran le temps de le mesurer, pour éviter un flash au mauvais
+  // endroit avant que left/top ne soient calculés.
+  menu.style.left = '-9999px';
+  menu.style.top = '0';
+  document.body.appendChild(menu);
+  openMenuEl = menu;
+
+  // Placement : sous le doigt, recadré pour rester entièrement visible.
+  const rect = menu.getBoundingClientRect();
+  const left = Math.min(Math.max(8, x - rect.width / 2), window.innerWidth - rect.width - 8);
+  const top = y + 12 + rect.height > window.innerHeight ? y - 12 - rect.height : y + 12;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+
+  menu.querySelector('[data-action="edit"]').addEventListener('click', () => {
+    closeTagMenu();
+    openTagEditModal(tag, onTagsChanged);
+  });
+  menu.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+    closeTagMenu();
+    if (!confirm('Supprimer ce tag ? Il sera retiré de tous les lieux.')) return;
+    try {
+      await deleteTag(tag.id);
+    } catch (err) {
+      alert('La suppression a échoué : ' + (err?.message ?? err));
+      return;
+    }
+    // Le tag disparaît de la base : il ne doit plus filtrer quoi que ce soit.
+    filterState.categories[tag.category]?.delete(tag.id);
+    onTagsChanged();
+  });
+
+  // Le menu se ferme au premier clic/tap ailleurs. En capture, et posé au
+  // prochain tick pour ne pas intercepter l'événement en cours.
+  setTimeout(() => {
+    document.addEventListener('pointerdown', onDocPointerDown, true);
+    window.addEventListener('scroll', closeTagMenu, true);
+  }, 0);
+}
+
+// Petite modale émoji + nom. Créée à la volée (pas de markup dans
+// index.html) : elle n'existe que le temps d'une édition.
+function openTagEditModal(tag, onTagsChanged) {
+  const overlay = document.createElement('div');
+  overlay.className = 'tag-modal-overlay';
+  overlay.innerHTML = `
+    <div class="tag-modal" role="dialog" aria-label="Modifier le tag">
+      <h3>Modifier le tag</h3>
+      <div class="tag-modal-row">
+        <input type="text" class="tag-modal-emoji" maxlength="4" value="${escapeText(tag.emoji)}" aria-label="Émoji" />
+        <input type="text" class="tag-modal-label" value="${escapeText(tag.label)}" aria-label="Nom du tag" />
+      </div>
+      <p class="tag-modal-error error-text hidden"></p>
+      <div class="tag-modal-actions">
+        <button type="button" class="btn-secondary" data-action="cancel">Annuler</button>
+        <button type="button" class="btn-primary" data-action="save">Enregistrer</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const emojiInput = overlay.querySelector('.tag-modal-emoji');
+  const labelInput = overlay.querySelector('.tag-modal-label');
+  const errorEl = overlay.querySelector('.tag-modal-error');
+  const saveBtn = overlay.querySelector('[data-action="save"]');
+  const close = () => overlay.remove();
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelector('[data-action="cancel"]').addEventListener('click', close);
+
+  const save = async () => {
+    const emoji = emojiInput.value.trim();
+    const label = labelInput.value.trim();
+    if (!emoji || !label) {
+      errorEl.textContent = 'Émoji et nom sont obligatoires.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    saveBtn.disabled = true;
+    try {
+      await updateTag(tag.id, emoji, label);
+    } catch (err) {
+      // Cas courant : contrainte unique (category, label) — un tag de la
+      // même catégorie porte déjà ce nom.
+      errorEl.textContent = 'Échec : ' + (err?.message ?? err);
+      errorEl.classList.remove('hidden');
+      saveBtn.disabled = false;
+      return;
+    }
+    close();
+    onTagsChanged();
+  };
+
+  saveBtn.addEventListener('click', save);
+  labelInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') save();
+  });
+  labelInput.focus();
+  labelInput.select();
 }
 
 function buildRatingSlider(onChange) {

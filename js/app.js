@@ -135,6 +135,21 @@ async function refreshPlaces() {
   rerenderCurrentView();
 }
 
+// Le panneau de filtres, redessiné aussi après un renommage/suppression de
+// tag (appui long sur une pilule) : `onTagsChanged` recharge alors la liste
+// des tags et les lieux, puisque chaque lieu embarque une copie de ses tags.
+function drawFilterPanel() {
+  renderFilterPanel(
+    document.getElementById('filter-panel-content'),
+    rerenderCurrentView,
+    async () => {
+      await loadTags({ force: true });
+      drawFilterPanel();
+      await refreshPlaces();
+    }
+  );
+}
+
 function rerenderCurrentView() {
   const filtered = applyFilters(allPlaces);
   if (currentView === 'map') {
@@ -207,7 +222,7 @@ function initMainScreenChrome() {
     location.reload();
   });
 
-  renderFilterPanel(document.getElementById('filter-panel-content'), rerenderCurrentView);
+  drawFilterPanel();
 
   setOnPinClick((id) => {
     const place = allPlaces.find((p) => p.id === id);
@@ -267,7 +282,7 @@ async function bootMainApp() {
   panTo(center);
 
   await loadTags();
-  renderFilterPanel(document.getElementById('filter-panel-content'), rerenderCurrentView);
+  drawFilterPanel();
   await refreshPlaces();
 }
 

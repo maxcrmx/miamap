@@ -50,3 +50,27 @@ export async function createTag(category, emoji, label) {
   tagsCache = [...(tagsCache || []), data];
   return data;
 }
+
+// Renomme un tag (émoji + libellé). Aucun lieu n'est touché : `place_tags`
+// référence le tag par son id, donc le nouveau libellé apparaît partout dès
+// que les lieux sont rechargés.
+export async function updateTag(id, emoji, label) {
+  const { data, error } = await sb
+    .from('tags')
+    .update({ emoji: emoji.trim(), label: label.trim() })
+    .eq('id', id)
+    .select('id, category, emoji, label')
+    .single();
+  if (error) throw error;
+  tagsCache = (tagsCache || []).map((t) => (t.id === id ? data : t));
+  return data;
+}
+
+// Supprime un tag. Les lignes place_tags correspondantes partent avec, via
+// le `on delete cascade` de la FK (supabase/schema.sql) — le tag disparaît
+// donc de tous les lieux qui le portaient.
+export async function deleteTag(id) {
+  const { error } = await sb.from('tags').delete().eq('id', id);
+  if (error) throw error;
+  tagsCache = (tagsCache || []).filter((t) => t.id !== id);
+}
