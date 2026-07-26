@@ -12,7 +12,7 @@
 //     directement ici ; les lecteurs le voient en lecture seule ;
 //   - pilules de tags colorées (mêmes styles que le panneau filtres) ;
 //   - les champs d'avis (👍 / 🤷 / remarques / commentaire) ;
-//   - actions : Y aller / Site web / Appeler / Modifier (réf. Mapstr).
+//   - actions : Google Maps / Site web / Appeler / Modifier (réf. Mapstr).
 //     Site web et téléphone sont lus depuis les colonnes `website`/`phone`
 //     de la base (remplies une fois pour toutes à l'ajout/édition, voir
 //     js/place-form.js) — l'ouverture d'une fiche ne fait AUCUN appel
@@ -127,19 +127,19 @@ export function openPlaceDetail(place) {
 
     <div class="place-tags">${tagPillsHtml(place)}</div>
 
-    ${place.top ? `<h4>Les 👍</h4><p class="place-field">${escapeHtml(place.top)}</p>` : ''}
-    ${place.bof ? `<h4>Les 🤷</h4><p class="place-field">${escapeHtml(place.bof)}</p>` : ''}
-    ${place.remarks ? `<h4>Remarques</h4><p class="place-field">${escapeHtml(place.remarks)}</p>` : ''}
-    ${place.comment ? `<h4>Commentaire général</h4><p class="place-field">${escapeHtml(place.comment)}</p>` : ''}
+    ${place.top ? `<h4>👍 Top</h4><p class="place-field">${escapeHtml(place.top)}</p>` : ''}
+    ${place.bof ? `<h4>🤷‍♂️ Flop</h4><p class="place-field">${escapeHtml(place.bof)}</p>` : ''}
+    ${place.remarks ? `<h4>💬 Remarques</h4><p class="place-field">${escapeHtml(place.remarks)}</p>` : ''}
+    ${place.comment ? `<h4>📝 Commentaire</h4><p class="place-field">${escapeHtml(place.comment)}</p>` : ''}
 
     <p class="place-added">${addedDateText(place)}</p>
 
     <div class="place-actions">
       <a class="place-action" id="place-go-btn" href="${googleMapsPlaceUrl(place)}" target="_blank" rel="noopener">
-        <span class="place-action-icon">↗️</span>Y aller</a>
+        <span class="place-action-icon">↗️</span>Google Maps</a>
       <a class="place-action${website ? '' : ' disabled'}" id="place-web-btn"
          ${website ? `href="${escapeHtml(website)}"` : ''} target="_blank" rel="noopener">
-        <span class="place-action-icon">🧭</span>Site web</a>
+        <span class="place-action-icon">🌐</span>Site web</a>
       <a class="place-action${phone ? '' : ' disabled'}" id="place-call-btn"
          ${phone ? `href="tel:${escapeHtml(phone.replace(/\s/g, ''))}"` : ''}>
         <span class="place-action-icon">📞</span>Appeler</a>

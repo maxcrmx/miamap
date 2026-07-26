@@ -353,7 +353,7 @@ insert into public.tags (category, emoji, label) values
   ('cuisine', '🇸🇻', 'Salvadorien'),
   ('cuisine', '🇹🇼', 'Taïwanais'),
   ('cuisine', '🇪🇹', 'Ethiopien'),
-  ('cuisine', '🇲🇨', 'Indonésien'),
+  ('cuisine', '🇮🇩', 'Indonésien'),
   ('cuisine', '🌏', 'Asiatique'),
   ('cuisine', '🌞', 'Méditerranéen'),
   ('cuisine', '🥙', 'Levant'),

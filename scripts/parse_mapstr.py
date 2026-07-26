@@ -56,18 +56,21 @@ OUT_CSV = REPO_ROOT / 'mapstr_parsed_review.csv'
 
 TYPE_DE_LIEU_LABELS = {
     'Restaurant', 'Café', 'Bar', 'Boulangerie', 'Pâtisserie', 'Glacier',
-    'Mercado', 'Crêperie', 'Fromagerie', 'Fromage',
+    'Mercado', 'Crêperie', 'Fromagerie',
 }
 # mapstr.csv spells some labels slightly differently than the canonical
 # names seeded in supabase/schema.sql (e.g. missing an accent), and some
 # raw tags should be merged into an existing one entirely rather than kept
 # as their own tag. Map the raw CSV spelling/label to the canonical one so
 # the import re-uses the seeded tag instead of creating a near-duplicate.
-# "Crêpe" is merged into "Crêperie" (Type de lieu) per admin correction —
-# it no longer exists as its own tag after parsing.
+# "Crêpe" is merged into "Crêperie" and "Fromage" into "Fromagerie" (both
+# Type de lieu) per admin correction — neither exists as its own tag after
+# parsing, so the import re-uses the seeded "Crêperie"/"Fromagerie" instead
+# of creating a near-duplicate.
 TYPE_DE_LIEU_ALIASES = {
     'Patisserie': 'Pâtisserie',
     'Crêpe': 'Crêperie',
+    'Fromage': 'Fromagerie',
 }
 SPECIAL_LABELS = {
     'Sandwich', 'Bowl', 'Pizza', 'Brunch', 'Burger', 'Trendy', 'Végétarien',
@@ -78,6 +81,15 @@ SPECIAL_LABELS = {
 # correction (e.g. "Moyen-orient" -> "Levant").
 CUISINE_ALIASES = {
     'Moyen-orient': 'Levant',
+}
+# Emoji corrections, applied AFTER the label has been canonicalised (admin
+# correction). mapstr.csv carries a wrong flag for some cuisines and there's
+# no way to derive the right one — it has to be stated. Keep this in sync
+# with the seeded emoji in supabase/schema.sql: the import matches an
+# existing tag by LABEL and keeps that row's emoji, so a fix here alone
+# would not change anything in a database where the tag already exists.
+EMOJI_OVERRIDES = {
+    ('cuisine', 'Indonésien'): '🇮🇩',  # l'export mapstr porte 🇲🇨 (Monaco)
 }
 PRICE_RE = re.compile(r'^(<\s*\d+€|\d+\s*-\s*\d+€)$')
 RATING_TAG_RE = re.compile(r'^⭐️\s*[\d,.]+/5$')  # redundant with the `rating` column — dropped
@@ -125,15 +137,21 @@ def classify_tag(raw_tag):
     if label in TYPE_DE_LIEU_ALIASES:
         label = TYPE_DE_LIEU_ALIASES[label]
     if label in TYPE_DE_LIEU_LABELS:
-        return ('type_de_lieu', emoji, label)
+        return _with_emoji_override('type_de_lieu', emoji, label)
     if label in SPECIAL_LABELS:
-        return ('special', emoji, label)
+        return _with_emoji_override('special', emoji, label)
     # Everything else in this dataset is a cuisine/origin tag (country
     # flags, "Asiatique", "Méditerranéen", etc.) — SPEC.md: "Keep every
     # cuisine as its own tag, even low-frequency ones."
     if label in CUISINE_ALIASES:
         label = CUISINE_ALIASES[label]
-    return ('cuisine', emoji, label)
+    return _with_emoji_override('cuisine', emoji, label)
+
+
+def _with_emoji_override(category, emoji, label):
+    """Single exit point for classify_tag: swaps in the corrected emoji when
+    the source data carries a wrong one (see EMOJI_OVERRIDES)."""
+    return (category, EMOJI_OVERRIDES.get((category, label), emoji), label)
 
 
 # ----------------------------------------------------------------------------

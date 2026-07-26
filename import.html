@@ -29,12 +29,15 @@
 </style>
 </head>
 <body>
-  <h1>Import des 307 lieux mapstr → Supabase</h1>
+  <h1>Import des lieux mapstr → Supabase</h1>
   <p id="import-gate">Vérification de la session...</p>
 
   <div id="import-panel" class="hidden">
     <p>1. Vérifie d'abord <code>mapstr_parsed_review.csv</code> (ou <code>.json</code>) dans le dossier du projet.</p>
     <p>2. Charge le fichier, vérifie le résumé, puis lance l'import.</p>
+    <p><small>Les colonnes <code>website</code>, <code>phone</code> et <code>google_place_id</code> doivent
+    exister dans <code>places</code> (migrations <code>supabase/add_website_phone.sql</code> et
+    <code>supabase/add_google_place_id.sql</code>). L'import le vérifie avant d'écrire quoi que ce soit.</small></p>
     <button id="import-load-btn">Charger mapstr_parsed_review.json</button>
     <button id="import-run-btn" disabled>Lancer l'import</button>
     <div id="import-summary"></div>

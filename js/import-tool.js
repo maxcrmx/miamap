@@ -44,6 +44,35 @@ async function checkAdmin() {
   return true;
 }
 
+// ----------------------------------------------------------------------------
+// Contrôle de schéma AVANT d'écrire quoi que ce soit
+// ----------------------------------------------------------------------------
+// `places` a gagné website / phone / google_place_id après l'écriture de cet
+// outil. Sans les migrations, l'import partait ligne par ligne et échouait
+// 306 fois de suite sur "Could not find the 'google_place_id' column" — on
+// préfère refuser de démarrer, avec le SQL exact à exécuter.
+const REQUIRED_COLUMNS = ['website', 'phone', 'google_place_id'];
+
+const MIGRATION_SQL =
+  "alter table public.places add column if not exists website         text not null default '';\n" +
+  "alter table public.places add column if not exists phone           text not null default '';\n" +
+  "alter table public.places add column if not exists google_place_id text not null default '';\n" +
+  "notify pgrst, 'reload schema';";
+
+async function checkSchema() {
+  const { error } = await sb
+    .from('places')
+    .select(['id', ...REQUIRED_COLUMNS].join(', '))
+    .limit(1);
+  if (!error) return true;
+
+  log('✗ Schéma incomplet : ' + error.message);
+  log('\nExécute ceci dans Supabase → SQL Editor, puis recharge cette page :\n');
+  log(MIGRATION_SQL);
+  summaryEl.textContent = 'Import bloqué : migration SQL manquante (voir le journal ci-dessous).';
+  return false;
+}
+
 async function loadReviewFile() {
   const res = await fetch('./mapstr_parsed_review.json');
   if (!res.ok) throw new Error('Impossible de charger mapstr_parsed_review.json (' + res.status + ')');
@@ -81,13 +110,36 @@ async function placeAlreadyImported(name, address) {
 async function runImport() {
   runBtn.disabled = true;
   loadBtn.disabled = true;
-  await loadTags();
+
+  // Refuse de démarrer si les colonnes manquent (voir checkSchema). Le
+  // try/catch couvre aussi une panne du préflight lui-même : sans lui, une
+  // exception ici laissait les deux boutons désactivés et la page muette,
+  // sans aucune indication de ce qui s'était passé.
+  try {
+    if (!(await checkSchema())) {
+      runBtn.disabled = false;
+      loadBtn.disabled = false;
+      return;
+    }
+    await loadTags();
+  } catch (err) {
+    log('✗ Impossible de démarrer l\'import : ' + (err?.message ?? err));
+    summaryEl.textContent = 'Import non démarré (voir le journal).';
+    console.error('[import] préflight en échec :', err);
+    runBtn.disabled = false;
+    loadBtn.disabled = false;
+    return;
+  }
 
   let created = 0;
   let skipped = 0;
   let failed = 0;
+  const total = parsedPlaces.length;
+  let done = 0;
 
   for (const place of parsedPlaces) {
+    done++;
+    summaryEl.textContent = `Import en cours… ${done}/${total} (${created} créés, ${skipped} ignorés, ${failed} échecs)`;
     try {
       // Safe to re-run: skip anything that's already in the DB (matched by
       // exact name+address) instead of creating duplicates.
@@ -109,11 +161,21 @@ async function runImport() {
           address: place.address,
           lat: place.lat,
           lng: place.lng,
+          // `rating` reste null pour les lieux "à tester" — surtout pas 0,
+          // qui voudrait dire "testé et noté zéro".
           rating: place.rating,
           top: place.top,
           bof: place.bof,
           remarks: place.remarks,
           comment: place.comment,
+          // L'export mapstr ne contient ni site web, ni téléphone, ni
+          // identifiant Google : on insère des chaînes vides, ce que la fiche
+          // lieu sait afficher (boutons Site web / Appeler grisés, "Y aller"
+          // qui retombe sur l'URL de recherche Google Maps). Si une future
+          // version du parsing les fournit, elles sont reprises telles quelles.
+          website: place.website ?? '',
+          phone: place.phone ?? '',
+          google_place_id: place.google_place_id ?? place.place_id ?? '',
           date_added: place.date_added,
           created_by: getCurrentProfile().id,
         })
@@ -135,6 +197,7 @@ async function runImport() {
   }
 
   log(`\nTerminé. ${created} créés, ${skipped} déjà présents, ${failed} échecs.`);
+  summaryEl.textContent = `Terminé : ${created} créés, ${skipped} déjà présents, ${failed} échecs.`;
   runBtn.disabled = false;
   loadBtn.disabled = false;
 }

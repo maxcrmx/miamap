@@ -84,7 +84,7 @@ Each place has:
    - Google Map centered on the user's geolocation on open; falls back to Paris center if geolocation is denied.
    - All matching pins shown (filtered by active filters + search).
    - Pins cluster when zoomed out and close together: a light grey filled circle showing the count of aggregated places.
-   - Pin design: a plain light-grey circle — no icon, no colored slices — plus a small badge in the top-right corner if status = "to try". Clusters use the exact same circle (shared constants in `js/map.js`), larger and with the aggregated count inside, so individual pins and clusters stay visually consistent.
+   - Pin design: a light-grey circle with the place-type emoji inside (see "Pin icon logic" above — the *first* Type de lieu tag added, never a mix), no colored slices, plus a small badge in the top-right corner if status = "to try". Clusters use the exact same circle (shared constants in `js/map.js`), larger, with the aggregated count inside and no emoji (they aggregate places of different types), so individual pins and clusters stay visually consistent.
    - Top-left button opens a filter side panel (covers half the screen width), light grey background, listing all filter categories (order: Type de lieu, Cuisine, Spécial, Prix, Note as a two-handle 0–5 slider, Statut). Tags within a category are alphabetically sorted, ignoring any leading emoji.
    - Map updates live as filters/search change.
    - Top-right button toggles to a **list view** of the same filtered results, sortable by distance, rating, or price (not by type/cuisine/special, since those aren't ordinal).
