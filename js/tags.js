@@ -69,8 +69,17 @@ export async function updateTag(id, emoji, label) {
 // Supprime un tag. Les lignes place_tags correspondantes partent avec, via
 // le `on delete cascade` de la FK (supabase/schema.sql) — le tag disparaît
 // donc de tous les lieux qui le portaient.
+// Le `.select()` n'est pas décoratif : un refus au niveau RLS (par
+// opposition à un refus au niveau GRANT, qui lui lève une vraie erreur
+// 42501) ne renvoie PAS d'erreur — il renvoie zéro ligne affectée. Sans ce
+// contrôle, une policy manquante ou trop stricte se traduirait par une
+// suppression qui « marche » dans l'UI et un tag toujours là après
+// rafraîchissement. On le transforme en erreur visible.
 export async function deleteTag(id) {
-  const { error } = await sb.from('tags').delete().eq('id', id);
+  const { data, error } = await sb.from('tags').delete().eq('id', id).select('id');
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("aucune ligne supprimée — accès refusé par les règles de sécurité (RLS).");
+  }
   tagsCache = (tagsCache || []).filter((t) => t.id !== id);
 }

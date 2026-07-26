@@ -143,9 +143,17 @@ function drawFilterPanel() {
     document.getElementById('filter-panel-content'),
     rerenderCurrentView,
     async () => {
-      await loadTags({ force: true });
-      drawFilterPanel();
-      await refreshPlaces();
+      // Le rechargement est déclenché depuis un handler d'événement : sans
+      // ce catch, un échec ici partirait en rejet non géré (visible en
+      // console uniquement) et l'écran resterait sur des données périmées
+      // sans rien dire.
+      try {
+        await loadTags({ force: true });
+        drawFilterPanel();
+        await refreshPlaces();
+      } catch (err) {
+        alert('Le rafraîchissement a échoué : ' + (err?.message ?? err));
+      }
     }
   );
 }

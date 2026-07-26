@@ -423,8 +423,8 @@ on conflict (email) do update set role = 'admin', is_active = true;
 --
 -- Privileges are kept to exactly what the app performs (see js/db.js,
 -- js/tags.js, js/settings.js). Some policies above anticipate operations the
--- UI doesn't do yet — deleting a profile, editing/deleting a tag — so those
--- are intentionally NOT granted. Add the grant here if the feature is built.
+-- UI doesn't do yet — deleting a profile — so those are intentionally NOT
+-- granted. Add the grant here if the feature is built.
 -- ----------------------------------------------------------------------------
 
 -- Required before any table in the schema is reachable at all.
@@ -434,8 +434,12 @@ grant usage on schema public to authenticated;
 -- revoke readers (update).
 grant select, insert, update on public.profiles to authenticated;
 
--- tags: everyone reads the tag list; admins create custom tags.
-grant select, insert on public.tags to authenticated;
+-- tags: everyone reads the tag list; admins create custom tags, and rename or
+-- delete them from the filter panel (long-press on a pill — js/filters.js).
+-- Deleting a tag also clears its place_tags rows through the FK's `on delete
+-- cascade`; that needs no extra privilege, since a referential action runs
+-- with the rights of the referenced table's owner, not the caller's.
+grant select, insert, update, delete on public.tags to authenticated;
 
 -- places: full CRUD (writes are admin-only via RLS).
 grant select, insert, update, delete on public.places to authenticated;
