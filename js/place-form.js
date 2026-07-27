@@ -27,7 +27,7 @@ import { tagsByCategory, createTag, loadTags } from './tags.js';
 import { createPlace, updatePlace } from './db.js';
 import { getCurrentProfile } from './auth.js';
 import { escapeHtml } from './helpers.js';
-import { starButtonsHtml, attachStarInput } from './rating-stars.js';
+import { starButtonsHtml, updateStarButtons, attachStarInput } from './rating-stars.js';
 
 // Prix reste mono-sélection (un lieu a UNE fourchette de prix) ; le statut
 // aussi, mais il est rendu à part (boutons toggle, pas nuage de pilules).
@@ -76,9 +76,16 @@ export function initPlaceForm({ onSaveComplete }) {
 // Note : état + affichage
 // ----------------------------------------------------------------------------
 // `value` : nombre de 0 à 5 (pas de 0,5) ou null pour "pas de note".
+//
+// N'utilise innerHTML QUE la toute première fois (conteneur encore vide) —
+// ensuite (glisser en cours, bouton Effacer, ré-ouverture du formulaire),
+// on met juste à jour les classes des boutons déjà en place. Recréer les
+// boutons à chaque appel pendant un glisser tactile cassait le tactile sur
+// iOS (voir rating-stars.js, attachStarInput).
 function setRating(value) {
   ratingInput.value = value === null ? '' : String(value);
-  starsEl.innerHTML = starButtonsHtml(value);
+  if (starsEl.children.length === 0) starsEl.innerHTML = starButtonsHtml(value);
+  else updateStarButtons(starsEl, value);
   ratingValueEl.textContent = value === null ? '' : `${value}/5`;
 }
 
