@@ -42,6 +42,15 @@ html, body {
   color: var(--c-ink);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  /* Sans ça, iOS Safari applique son "font boosting" : il gonfle
+     automatiquement le texte qu'il juge trop petit pour être lisible (ex.
+     le label "TAGS" à 9.5px de la liste), sans rapport avec le font-size
+     réellement déclaré en CSS. Invisible en test desktop/headless (le
+     bug ne se manifeste que sur de vrais Safari mobiles), d'où le
+     décalage entre "ça a l'air correct ici" et "c'est énorme sur le
+     téléphone". */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 .hidden { display: none !important; }
 
@@ -204,6 +213,11 @@ html, body {
 }
 .list-row-tag-scroll {
   display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px;
+  /* Chaque ligne est elle-même un <button> cliquable dans une liste qui
+     défile verticalement : sans cet indice, un doigt qui glisse ici pouvait
+     être arbitré comme un scroll de page ou un tap sur la ligne au lieu
+     d'un défilement horizontal des tags. */
+  touch-action: pan-x;
 }
 .list-row-tag-scroll::-webkit-scrollbar { display: none; }
 .list-row-tag {
@@ -212,27 +226,35 @@ html, body {
   border: 1px solid var(--c-tag-border); font: 500 12px var(--font-sans); color: var(--c-tag-text);
 }
 
-/* Barre du bas : "+" centré qui déborde vers le haut, roue dentée à
+/* Barre du bas : "+" centré qui déborde vers le haut, bouton réglages à
    droite. Toute la barre est admin-only (les lecteurs n'ont ni ajout ni
-   réglages). */
+   réglages).
+
+   L'OMBRE PORTÉE VIT SUR LA BARRE ELLE-MÊME (pas sur chaque bouton) : avec
+   une ombre par bouton et un fond de barre trop proche du fond de page,
+   les deux boutons se lisaient comme deux pilules flottantes séparées par
+   un vide, plutôt que comme une seule barre continue portant deux
+   contrôles. Une seule ombre, portée vers le haut par la barre, unifie
+   l'ensemble ; .settings-btn n'a donc plus sa propre ombre (le "+" garde
+   la sienne : il est censé déborder au-dessus de la barre). */
 .bottom-bar {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  padding: 6px calc(env(safe-area-inset-bottom) + 12px) 8px 12px;
+  padding: 4px calc(env(safe-area-inset-bottom) + 12px) 6px 12px;
   border-top: 1px solid var(--c-border); background: var(--c-surface);
+  box-shadow: 0 -2px 10px rgba(42,39,33,0.08);
 }
 .fab {
   background: var(--c-sapin-active); color: #fff; border: none; border-radius: 50%;
-  width: 52px; height: 52px; font-size: 28px; font-weight: 500; cursor: pointer;
+  width: 48px; height: 48px; font-size: 26px; font-weight: 500; cursor: pointer;
   box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  margin-top: -22px; /* déborde au-dessus de la barre, comme sur Mapstr */
+  margin-top: -19px; /* déborde au-dessus de la barre, comme sur Mapstr */
   line-height: 1;
 }
 .bottom-bar-right { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
 .settings-btn {
-  background: var(--c-surface); color: var(--c-ink); border: none; border-radius: 12px;
-  height: 40px; padding: 0 16px; font: 600 13px var(--font-sans); cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  background: none; color: var(--c-ink); border: none; border-radius: 12px;
+  height: 36px; padding: 0 16px; font: 600 13px var(--font-sans); cursor: pointer;
   display: flex; align-items: center; justify-content: center; white-space: nowrap;
 }
 
