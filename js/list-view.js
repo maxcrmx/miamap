@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { pinIcon, distanceKm, priceRank, escapeHtml } from './helpers.js';
+import { starsHtml } from './rating-stars.js';
 
 let currentSort = 'distance';
 let userLocation = null;
@@ -34,6 +35,27 @@ function sortPlaces(places) {
   return sorted;
 }
 
+// Sous chaque ligne, les tags du lieu (hors statut) sont regroupés en deux
+// rangées à défilement horizontal : "Tags" (type de lieu/cuisine/spécial)
+// puis "Prix" — même regroupement que le nuage de tags du panneau filtres,
+// juste réparti en deux étiquettes au lieu d'un seul bloc.
+function tagGroupsHtml(place) {
+  const rest = place.tags.filter((t) => t.category !== 'statut' && t.category !== 'prix');
+  const prix = place.tags.filter((t) => t.category === 'prix');
+  const groups = [];
+  if (rest.length) groups.push({ label: 'Tags', tags: rest });
+  if (prix.length) groups.push({ label: 'Prix', tags: prix });
+
+  return groups.map((g) => `
+    <div class="list-row-group">
+      <div class="list-row-group-label">${g.label}</div>
+      <div class="list-row-tag-scroll">
+        ${g.tags.map((t) => `<span class="list-row-tag">${escapeHtml(t.emoji)} ${escapeHtml(t.label)}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
 export function renderList(root, places, onSelect) {
   const sorted = sortPlaces(places);
   root.innerHTML = '';
@@ -43,19 +65,32 @@ export function renderList(root, places, onSelect) {
     return;
   }
 
+  const card = document.createElement('div');
+  card.className = 'list-card';
+
   for (const place of sorted) {
     const row = document.createElement('button');
     row.className = 'list-row';
     const distText = userLocation ? `${distanceKm(userLocation, place).toFixed(1)} km` : '';
-    const ratingText = place.rating !== null ? `⭐️ ${place.rating}/5` : 'Note à définir';
+    const ratingMeta = place.rating !== null
+      ? `${starsHtml(place.rating)}<span class="list-row-rating">${place.rating}/5</span>`
+      : `<span class="list-row-norating">Note à définir</span>`;
     row.innerHTML = `
-      <span class="list-row-icon">${escapeHtml(pinIcon(place))}</span>
-      <span class="list-row-body">
-        <span class="list-row-name">${escapeHtml(place.name)}</span>
-        <span class="list-row-meta">${ratingText} ${distText ? '· ' + distText : ''}</span>
-      </span>
+      <div class="list-row-top">
+        <span class="list-row-icon">${escapeHtml(pinIcon(place))}</span>
+        <span class="list-row-body">
+          <span class="list-row-name">${escapeHtml(place.name)}</span>
+          <span class="list-row-meta">
+            ${ratingMeta}
+            ${distText ? `<span class="list-row-dot">·</span><span>${distText}</span>` : ''}
+          </span>
+        </span>
+      </div>
+      ${tagGroupsHtml(place)}
     `;
     row.addEventListener('click', () => onSelect(place.id));
-    root.appendChild(row);
+    card.appendChild(row);
   }
+
+  root.appendChild(card);
 }

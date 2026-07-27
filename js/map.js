@@ -30,20 +30,24 @@ const PIN_CIRCLE = 40;
 const PIN_BOX = 50;
 const CLUSTER_SIZE = 44;
 
-// Couleurs des PINS : fond quasi blanc, contour gris clair mais assez
-// soutenu pour détacher le pin des routes blanches et des bâtiments clairs
-// du fond de carte Google. C'est le contour qui porte la lisibilité — le
-// fond, lui, est volontairement proche du blanc.
-const PIN_FILL = '#f5f5f5';
-const PIN_STROKE = '#d0d0d0';
+// Couleurs des PINS — identité "Carnet" : crème avec un contour taupe assez
+// soutenu pour détacher le pin des routes claires et des bâtiments du fond
+// de carte Google. C'est le contour qui porte la lisibilité — le fond, lui,
+// reste proche de la surface crème du reste de l'app.
+const PIN_FILL = '#FBF8F1';
+const PIN_STROKE = '#B4AC94';
 
-// Couleurs des CLUSTERS : inchangées, gris plus soutenu.
-// NOTE : pins et clusters partageaient une seule paire de couleurs pour ne
-// pas diverger. Ils divergent désormais volontairement (demande produit :
-// éclaircir les pins, laisser le clustering tel quel). Seule l'épaisseur de
-// trait reste commune.
-const CLUSTER_FILL = '#d9d9d9';
-const CLUSTER_STROKE = '#bdbdbd';
+// Couleurs des CLUSTERS : gris clair neutre avec texte noir, assorti au
+// style pilule utilisé ailleurs dans l'app (pins/tags), plutôt qu'un
+// cercle sombre qui détonnait.
+const CLUSTER_FILL = '#D9D5C9';
+const CLUSTER_STROKE = '#B4AC94';
+
+// Couleur du badge "à tester" : jaune Mapstr d'origine (clin d'œil aux
+// racines de l'app — voir SPEC.md/captures de référence). Les lieux "déjà
+// testé" n'ont pas de badge du tout — seuls les lieux à tester en ont un,
+// pour attirer l'œil sur ce qu'il reste à visiter.
+const BADGE_TO_TRY = '#FFC72C';
 
 const CIRCLE_STROKE_WIDTH = 1.5;
 
@@ -81,9 +85,13 @@ function escapeXml(str) {
 function buildPinSvg(place) {
   const c = PIN_BOX / 2;
   const r = PIN_CIRCLE / 2 - CIRCLE_STROKE_WIDTH / 2 - 1;
-  const badgeOffset = PIN_CIRCLE / 2 - 4;
+  // Centre du badge posé EXACTEMENT sur le bord du cercle du pin (diagonale
+  // haut-droite à 45°) : la moitié du badge chevauche l'intérieur du pin,
+  // l'autre moitié déborde à l'extérieur — le classique point de
+  // notification, plutôt qu'un badge flottant à côté du pin.
+  const badgeOffset = r / Math.SQRT2;
   const badge = isToTry(place)
-    ? `<circle cx="${c + badgeOffset}" cy="${c - badgeOffset}" r="6" fill="#1a73e8" stroke="#fff" stroke-width="1.5" />`
+    ? `<circle cx="${c + badgeOffset}" cy="${c - badgeOffset}" r="6" fill="${BADGE_TO_TRY}" stroke="#fff" stroke-width="1.5" />`
     : '';
   return svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${PIN_BOX}" height="${PIN_BOX}" viewBox="0 0 ${PIN_BOX} ${PIN_BOX}">
@@ -104,7 +112,7 @@ function buildClusterSvg(count) {
   return svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${CLUSTER_SIZE}" height="${CLUSTER_SIZE}" viewBox="0 0 ${CLUSTER_SIZE} ${CLUSTER_SIZE}">
       ${circleSvg(CLUSTER_SIZE, CLUSTER_FILL, CLUSTER_STROKE)}
-      <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="sans-serif" fill="#333">${count}</text>
+      <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="sans-serif" fill="#000">${count}</text>
     </svg>
   `);
 }

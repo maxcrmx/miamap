@@ -6,27 +6,42 @@
    unless it has `.active`. Overlays that slide in on top of the main
    screen (filter panel, place detail sheet) use their own `.open` class
    instead, since more than one can coexist with the main screen.
+
+   Identité visuelle "Carnet" : papeterie beige/crème, encre + sapin,
+   étoiles laiton, titres en serif (Lora) / UI en Work Sans (chargées
+   depuis Google Fonts dans index.html). Tags neutralisés : une seule
+   teinte pour toutes les catégories (fini le code couleur par catégorie).
    ============================================================================ */
 
-/* Couleurs des pilules de tags, fixées PAR CATÉGORIE (pas par tag) : deux
-   tags de la même catégorie ont toujours le même fond, partout où ils sont
-   affichés (panneau filtres, fiche lieu, formulaire d'ajout). Regroupées
-   ici pour pouvoir les ajuster d'un seul endroit. */
 :root {
-  --tag-type_de_lieu: #EDEDEC; /* gris pâle */
-  --tag-cuisine:      #DDEEFF; /* bleu pâle */
-  --tag-special:      #FFF3CD; /* jaune pâle */
-  --tag-prix:         #D8F3DC; /* vert pâle */
-  --tag-statut:       #FFE3D3; /* orange pâle — catégorie hors palette demandée */
-  --tag-text:         #333;
+  --c-bg:         #F3EEE3; /* fond des écrans pleine page (connexion, liste, réglages) */
+  --c-surface:    #FBF8F1; /* cartes, fiches, panneaux, formulaire */
+  --c-surface-alt:#F1EEE5; /* pilules de tag, icônes, cases */
+  --c-white:      #FFFFFF; /* champs de saisie */
+  --c-ink:        #2A2721; /* texte principal, boutons pleins */
+  --c-ink-soft:   #4A453B; /* texte secondaire foncé */
+  --c-muted:      #8C8574; /* texte tertiaire / placeholders */
+  --c-taupe:      #B4AC94; /* éléments discrets (points inactifs, contour pins) */
+  --c-border:     #DED5BE; /* séparateurs, contours de champs */
+  --c-tag-border: #CBC3AC; /* contour des pilules de tag */
+  --c-tag-text:   #3A362D; /* texte des pilules de tag */
+  --c-sapin:      #2F4B3C; /* vert sapin — plus utilisé pour le statut, réservé aux autres accents ci-dessous */
+  --c-sapin-active: #415727; /* accent des états actifs/CTA (pilule Carte/Liste, bouton + ) */
+  --c-status:     #6B6558; /* beige foncé/taupe — accent statut "déjà testé" (toggle, interrupteur, pin) */
+  --c-laiton:     #B07A3E; /* étoiles */
+  --c-danger:     #A6493B; /* suppression / déconnexion */
+  --font-serif: 'Lora', Georgia, serif;
+  --font-sans: 'Work Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #fff;
+  font-family: var(--font-sans);
+  background: var(--c-bg);
+  color: var(--c-ink);
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
 }
 .hidden { display: none !important; }
 
@@ -38,7 +53,7 @@ html, body {
   position: fixed;
   inset: 0;
   flex-direction: column;
-  background: #fff;
+  background: var(--c-surface);
   z-index: 10;
 }
 .top-screen.active { display: flex; }
@@ -48,45 +63,51 @@ html, body {
 .top-screen.open { display: flex; }
 .overlay-screen { z-index: 40; }
 
+/* Écrans dont le fond est le beige "page" plutôt que la surface crème par
+   défaut (la carte elle-même recouvre #main-screen en mode carte). */
+#main-screen, #settings-screen { background: var(--c-bg); }
+
 /* ---------------------------------------------------------------------- */
 /* Auth screen                                                            */
 /* ---------------------------------------------------------------------- */
-#auth-screen { background: #f5d842; align-items: center; justify-content: center; padding: 2rem; }
+#auth-screen { background: var(--c-bg); align-items: center; justify-content: center; padding: 2rem; }
 .auth-box { text-align: center; max-width: 340px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
 .auth-icon { font-size: 52px; }
-.auth-box h1 { font-size: 26px; font-weight: 600; color: #1a1a1a; }
-.auth-box p { color: #5a4f00; font-size: 15px; }
+.auth-box h1 { font: 600 30px var(--font-serif); color: var(--c-ink); }
+.auth-box p { color: var(--c-muted); font-size: 15px; line-height: 1.5; }
 #auth-form { display: flex; flex-direction: column; gap: 10px; }
 #auth-form input {
-  border: none; border-radius: 10px; padding: 14px; font-size: 15px; outline: none;
+  border: 1px solid var(--c-border); border-radius: 12px; padding: 16px 18px; font-size: 15px;
+  outline: none; background: var(--c-surface); font-family: inherit;
 }
 #auth-form button {
-  background: #1a1a1a; color: #f5d842; border: none; border-radius: 12px;
-  padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer;
+  background: var(--c-ink); color: #fff; border: none; border-radius: 12px;
+  padding: 17px; font-size: 15.5px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .link-btn {
-  background: none; border: none; color: #5a4f00; font-size: 13px;
-  text-decoration: underline; cursor: pointer; padding: 4px;
+  background: none; border: none; color: var(--c-ink-soft); font-size: 13.5px;
+  text-decoration: underline; cursor: pointer; padding: 4px; font-family: inherit;
 }
 #auth-code-form { display: flex; flex-direction: column; gap: 10px; }
 #auth-code-form input {
-  border: none; border-radius: 10px; padding: 14px; font-size: 15px; outline: none; text-align: center; letter-spacing: 2px;
+  border: 1px solid var(--c-border); border-radius: 12px; padding: 16px 18px; font-size: 15px;
+  outline: none; text-align: center; letter-spacing: 2px; background: var(--c-surface); font-family: inherit;
 }
 #auth-code-form button {
-  background: #1a1a1a; color: #f5d842; border: none; border-radius: 12px;
-  padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--c-ink); color: #fff; border: none; border-radius: 12px;
+  padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.status-text { font-size: 13px; color: #666; min-height: 16px; }
+.status-text { font-size: 13px; color: var(--c-muted); min-height: 16px; }
 
 /* ---------------------------------------------------------------------- */
 /* Écran principal — contrôles flottants + barre du bas                   */
-/* Réf. : reference-ui/01-accueil.jpeg (Mapstr) : boutons ronds blancs,   */
-/* pilule Carte/Liste centrée, gros "+" jaune centré en bas.              */
+/* Réf. : reference-ui/01-accueil.jpeg (Mapstr) : boutons ronds,          */
+/* pilule Carte/Liste centrée, gros "+" centré en bas.                    */
 /* ---------------------------------------------------------------------- */
 
 /* Bloc supérieur : par défaut il FLOTTE au-dessus de la carte. En vue
    liste (#main-screen.list-mode, posé par js/app.js), il redevient une
-   barre blanche dans le flux pour ne pas masquer la liste. */
+   barre dans le flux pour ne pas masquer la liste. */
 .top-overlay {
   position: absolute; top: 0; left: 0; right: 0; z-index: 5;
   padding: calc(env(safe-area-inset-top) + 10px) 12px 0;
@@ -95,130 +116,174 @@ html, body {
 }
 .top-overlay > * { pointer-events: auto; }
 #main-screen.list-mode .top-overlay {
-  position: static; background: #fff; border-bottom: 1px solid #eee;
+  position: static; background: var(--c-bg); border-bottom: 1px solid var(--c-border);
   padding-bottom: 10px; pointer-events: auto;
 }
 
 .map-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
-/* Boutons ronds blancs (filtres, loupe, roue dentée) comme sur Mapstr. */
+/* Boutons ronds (filtres, loupe, roue dentée) comme sur Mapstr. */
 .round-btn {
-  background: #fff; border: none; border-radius: 50%;
+  background: var(--c-surface); color: var(--c-ink); border: none; border-radius: 50%;
   width: 44px; height: 44px; font-size: 18px; cursor: pointer;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   display: flex; align-items: center; justify-content: center; flex: none;
 }
 
-/* Pilule segmentée Carte/Liste : segment actif sombre, texte blanc. */
+/* Pilule segmentée Carte/Liste : segment actif encre, texte blanc. */
 .view-pill {
-  display: flex; background: #fff; border-radius: 22px; padding: 3px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  display: flex; background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 999px; padding: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 .view-pill-seg {
-  border: none; background: none; border-radius: 19px;
-  padding: 8px 20px; font-size: 15px; font-weight: 600; color: #1a1a1a; cursor: pointer;
+  border: none; background: none; border-radius: 999px; font-family: inherit;
+  padding: 9px 20px; font-size: 13.5px; font-weight: 500; color: var(--c-ink-soft); cursor: pointer;
 }
-.view-pill-seg.active { background: #3a3a3c; color: #fff; }
+.view-pill-seg.active { background: var(--c-sapin-active); color: #fff; font-weight: 600; }
 
 .search-row { display: flex; }
 #search-input {
-  flex: 1; border: none; border-radius: 12px;
+  flex: 1; border: 1px solid var(--c-border); border-radius: 12px;
   padding: 12px 14px; font-size: 15px; outline: none;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.18); background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08); background: var(--c-surface);
+  font-family: inherit; color: var(--c-ink);
 }
-#main-screen.list-mode #search-input { box-shadow: none; background: #f0f0f0; }
+#main-screen.list-mode #search-input { box-shadow: none; background: var(--c-surface-alt); }
 
 .sort-row {
-  display: flex; align-items: center; gap: 12px; padding: 8px 4px 0;
-  font-size: 13px; color: #555; flex-wrap: wrap;
-  background: rgba(255,255,255,0.92); border-radius: 12px; padding: 8px 12px;
+  display: flex; align-items: center; gap: 18px; padding: 8px 12px;
+  font: 500 13px var(--font-sans); color: var(--c-ink-soft); flex-wrap: wrap;
+  background: rgba(251,248,241,0.92); border-radius: 12px;
 }
-.sort-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.sort-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sort-row input[type="radio"] { accent-color: var(--c-sapin); }
+.sort-row label:has(input:checked) { color: var(--c-ink); font-weight: 600; }
 
 #map-container { flex: 1; }
-#list-container { flex: 1; overflow-y: auto; padding: 8px 12px; }
-.list-empty { text-align: center; color: #999; padding: 40px 20px; }
+#list-container { flex: 1; overflow-y: auto; padding: 12px 16px 16px; }
+.list-empty { text-align: center; color: var(--c-muted); padding: 40px 20px; }
 
-.list-row {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  background: none; border: none; border-bottom: 1px solid #f0f0f0;
-  padding: 12px 4px; text-align: left; cursor: pointer;
+/* Carte unique enveloppant toutes les lignes (réf. écran "Liste" du
+   redesign) : les lignes sont séparées par un filet, pas par un espace. */
+.list-card {
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04); overflow: hidden;
 }
-.list-row-icon { font-size: 24px; }
-.list-row-body { display: flex; flex-direction: column; gap: 2px; }
-.list-row-name { font-weight: 600; font-size: 15px; }
-.list-row-meta { font-size: 13px; color: #777; }
+.list-row {
+  display: flex; flex-direction: column; gap: 7px; width: 100%;
+  background: none; border: none; border-bottom: 1px solid #E4DDC9;
+  padding: 15px 18px 14px; text-align: left; cursor: pointer; font-family: inherit;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row-top { display: flex; align-items: center; gap: 14px; }
+.list-row-icon {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  background: var(--c-surface-alt); border: 1px solid var(--c-tag-border);
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.list-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.list-row-name {
+  font: 600 16px var(--font-serif); color: var(--c-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.list-row-meta { display: flex; align-items: center; gap: 8px; font: 400 13px var(--font-sans); color: var(--c-muted); }
+.list-row-meta .stars { gap: 1px; }
+.list-row-meta .stars .star { font-size: 13px; padding: 0; color: var(--c-border); }
+.list-row-meta .stars .star.full { color: var(--c-laiton); }
+.list-row-rating { color: var(--c-ink-soft); font-weight: 700; font-size: 13px; }
+.list-row-norating { font-style: italic; }
+.list-row-dot { color: var(--c-taupe); }
 
-/* Barre du bas : blanche, "+" jaune centré qui déborde vers le haut,
-   roue dentée à droite. Toute la barre est admin-only (les lecteurs
-   n'ont ni ajout ni réglages). */
+/* Groupes de tags sous chaque ligne (Tags / Prix), en dessous du nom — le
+   `gap` de .list-row espace déjà .list-row-top et chaque groupe entre eux.
+   Scroll horizontal pour ne jamais casser la hauteur de ligne. */
+.list-row-group-label {
+  font: 600 9.5px var(--font-sans); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--c-taupe); margin-bottom: 5px;
+}
+.list-row-tag-scroll {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px;
+}
+.list-row-tag-scroll::-webkit-scrollbar { display: none; }
+.list-row-tag {
+  flex-shrink: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; border-radius: 8px; background: var(--c-surface-alt);
+  border: 1px solid var(--c-tag-border); font: 500 12px var(--font-sans); color: var(--c-tag-text);
+}
+
+/* Barre du bas : "+" centré qui déborde vers le haut, roue dentée à
+   droite. Toute la barre est admin-only (les lecteurs n'ont ni ajout ni
+   réglages). */
 .bottom-bar {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  padding: 10px calc(env(safe-area-inset-bottom) + 12px) 14px 12px;
-  border-top: 1px solid #eee; background: #fff;
+  padding: 6px calc(env(safe-area-inset-bottom) + 12px) 8px 12px;
+  border-top: 1px solid var(--c-border); background: var(--c-surface);
 }
 .fab {
-  background: #f5c518; color: #fff; border: none; border-radius: 50%;
-  width: 64px; height: 64px; font-size: 34px; font-weight: 500; cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  margin-top: -28px; /* déborde au-dessus de la barre, comme sur Mapstr */
+  background: var(--c-sapin-active); color: #fff; border: none; border-radius: 50%;
+  width: 52px; height: 52px; font-size: 28px; font-weight: 500; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  margin-top: -22px; /* déborde au-dessus de la barre, comme sur Mapstr */
   line-height: 1;
 }
 .bottom-bar-right { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+.settings-btn {
+  background: var(--c-surface); color: var(--c-ink); border: none; border-radius: 12px;
+  height: 40px; padding: 0 16px; font: 600 13px var(--font-sans); cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+}
 
 /* ---------------------------------------------------------------------- */
 /* Filter side panel (half screen width, slides from the left)            */
 /* ---------------------------------------------------------------------- */
 .side-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  position: fixed; inset: 0; background: rgba(42,39,33,0.35);
   opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 20;
 }
 .side-backdrop.open { opacity: 1; pointer-events: auto; }
 .side-panel {
   position: fixed; top: 0; bottom: 0; left: 0; width: 50%; min-width: 260px;
-  background: #f7f7f7; z-index: 21; transform: translateX(-100%);
+  background: var(--c-surface); z-index: 21; transform: translateX(-100%);
   transition: transform 0.2s; display: flex; flex-direction: column;
   padding-top: env(safe-area-inset-top);
 }
 .side-panel.open { transform: translateX(0); }
-.side-panel-header { padding: calc(env(safe-area-inset-top) + 16px) 16px 16px; border-bottom: 1px solid #e5e5e5; }
+.side-panel-header { padding: calc(env(safe-area-inset-top) + 16px) 16px 16px; border-bottom: 1px solid var(--c-border); }
+.side-panel-header h2 { font: 700 22px var(--font-serif); color: var(--c-ink); }
 .side-panel-content { flex: 1; overflow-y: auto; padding: 12px 16px; }
 
 .filter-section { margin-bottom: 20px; }
-.filter-section h3 { font-size: 14px; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+.filter-section h3 {
+  font: 600 11px var(--font-sans); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--c-muted); margin-bottom: 10px;
+}
 
 /* ---------------------------------------------------------------------- */
 /* Pilules de tags — style commun panneau filtres / formulaire / fiche.   */
-/* Réf. : reference-ui/04-fiche-edition.jpeg : pilule à fond coloré,      */
-/* croix ✕ quand le tag est sélectionné/supprimable. Le fond dépend de la */
-/* CATÉGORIE seule (variables --tag-* dans :root), pas du tag : deux tags */
-/* d'une même catégorie sont toujours de la même couleur.                 */
+/* Neutralisées : une seule teinte pour toutes les catégories (le fond ne */
+/* dépend plus de la catégorie du tag — direction "Carnet" du redesign).  */
 /* ---------------------------------------------------------------------- */
 .tag-pill {
-  --pill: var(--tag-type_de_lieu);
   display: inline-flex; align-items: center; gap: 6px;
-  border: none; border-radius: 8px; padding: 7px 12px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-  background: var(--pill); color: var(--tag-text); white-space: nowrap;
+  border: 1px solid var(--c-tag-border); border-radius: 9px; padding: 9px 13px;
+  font: 500 13.5px var(--font-sans); cursor: pointer;
+  background: var(--c-surface-alt); color: var(--c-tag-text); white-space: nowrap;
 }
 .tag-pill .pill-x {
-  font-weight: 700; padding-left: 4px; border-left: 1.5px solid rgba(0,0,0,0.18);
+  font-weight: 700; padding-left: 4px; border-left: 1.5px solid rgba(58,54,45,0.25);
 }
-/* État "éteint" : contour seul, pour rester distinguable des fonds pâles
-   ci-dessus. Utilisé (a) dans le panneau filtres pour les tags non
-   sélectionnés d'une catégorie où un autre tag est sélectionné, (b) dans le
-   formulaire pour les tags disponibles non encore ajoutés. */
+/* État "éteint" : contour seul, pour rester distinguable des tags actifs.
+   Utilisé (a) dans le panneau filtres pour les tags non sélectionnés
+   d'une catégorie où un autre tag est sélectionné, (b) dans le formulaire
+   pour les tags disponibles non encore ajoutés. */
 .tag-pill.dimmed {
-  background: #fff; color: #9a9a9f;
-  box-shadow: inset 0 0 0 1.5px #e3e3e6;
+  background: none; color: var(--c-muted);
+  box-shadow: inset 0 0 0 1.5px var(--c-border);
+  border-color: transparent;
 }
-
-.cat-type_de_lieu { --pill: var(--tag-type_de_lieu); }
-.cat-cuisine      { --pill: var(--tag-cuisine); }
-.cat-special      { --pill: var(--tag-special); }
-.cat-prix         { --pill: var(--tag-prix); }
-.cat-statut       { --pill: var(--tag-statut); }
 
 /* Dans le panneau filtres, les pilules s'enchaînent en "nuage". */
 .filter-tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -233,111 +298,116 @@ html, body {
 /* Au-dessus du panneau de filtres (z-index 21) d'où il est ouvert. */
 .tag-menu {
   position: fixed; z-index: 60;
-  background: #fff; border-radius: 12px; padding: 6px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  background: var(--c-surface); border-radius: 12px; padding: 6px;
+  box-shadow: 0 6px 24px rgba(42,39,33,0.22);
   display: flex; flex-direction: column; min-width: 160px;
 }
 .tag-menu button {
-  background: none; border: none; text-align: left; cursor: pointer;
-  padding: 10px 12px; font-size: 15px; color: #1a1a1a; border-radius: 8px;
+  background: none; border: none; text-align: left; cursor: pointer; font-family: inherit;
+  padding: 10px 12px; font-size: 15px; color: var(--c-ink); border-radius: 8px;
 }
-.tag-menu button:hover { background: #f4f4f5; }
+.tag-menu button:hover { background: var(--c-surface-alt); }
 
 .tag-modal-overlay {
   position: fixed; inset: 0; z-index: 61;
-  background: rgba(0,0,0,0.35);
+  background: rgba(42,39,33,0.4);
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .tag-modal {
-  background: #fff; border-radius: 16px; padding: 20px;
+  background: var(--c-surface); border-radius: 16px; padding: 20px;
   width: 100%; max-width: 340px;
   display: flex; flex-direction: column; gap: 14px;
 }
-.tag-modal h3 { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+.tag-modal h3 { font: 600 17px var(--font-serif); color: var(--c-ink); }
 .tag-modal-row { display: flex; gap: 8px; }
 .tag-modal-row input {
-  border: 1px solid #ddd; border-radius: 10px; padding: 11px 12px; font-size: 15px;
+  border: 1px solid var(--c-border); border-radius: 10px; padding: 11px 12px; font-size: 15px;
+  font-family: inherit; background: var(--c-white);
 }
 .tag-modal-emoji { width: 68px; text-align: center; }
 .tag-modal-label { flex: 1; min-width: 0; }
-.tag-modal-row input:focus { outline: none; border-color: #1a1a1a; }
+.tag-modal-row input:focus { outline: none; border-color: var(--c-ink); }
 .tag-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .rating-slider { position: relative; height: 24px; margin: 8px 0; }
 .rating-slider-track {
   position: absolute; top: 10px; left: 0; right: 0; height: 4px;
-  background: #ddd; border-radius: 2px;
+  background: var(--c-border); border-radius: 2px;
 }
-.rating-slider-range { position: absolute; top: 10px; height: 4px; background: #f5d842; border-radius: 2px; }
+.rating-slider-range { position: absolute; top: 10px; height: 4px; background: var(--c-ink); border-radius: 2px; }
 .rating-slider input[type="range"] {
   position: absolute; top: 0; left: 0; width: 100%; margin: 0;
   -webkit-appearance: none; appearance: none; background: none; pointer-events: none;
 }
 .rating-slider input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; pointer-events: auto;
-  width: 18px; height: 18px; border-radius: 50%; background: #1a1a1a; cursor: pointer;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--c-ink); cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.rating-slider-labels { font-size: 13px; color: #666; }
+.rating-slider-labels { font-size: 13px; color: var(--c-muted); }
 
 /* ---------------------------------------------------------------------- */
 /* Place detail bottom sheet (3/4 screen height)                          */
 /* ---------------------------------------------------------------------- */
 .sheet-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  position: fixed; inset: 0; background: rgba(42,39,33,0.35);
   opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 30;
 }
 .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
 .bottom-sheet {
   position: fixed; left: 0; right: 0; bottom: 0; height: 75vh;
-  background: #fff; border-radius: 16px 16px 0 0; z-index: 31;
+  background: var(--c-surface); border-radius: 22px 22px 0 0; z-index: 31;
   transform: translateY(100%); transition: transform 0.25s ease-out;
   display: flex; flex-direction: column;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 -6px 18px rgba(42,39,33,0.12);
 }
 .bottom-sheet.open { transform: translateY(0); }
 .sheet-handle { padding: 10px; display: flex; justify-content: center; cursor: grab; touch-action: none; }
-.sheet-handle-bar { width: 40px; height: 4px; border-radius: 2px; background: #ccc; }
-.sheet-content { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
+.sheet-handle-bar { width: 38px; height: 4px; border-radius: 2px; background: var(--c-border); }
+.sheet-content { flex: 1; overflow-y: auto; padding: 0 22px 24px; }
 
 /* Fiche lieu — réf. reference-ui/05-fiche-a-essayer.jpeg et
    06-fiche-deja-teste.jpeg : interrupteur de statut + étoiles (si testé),
    pilules de tags, puis rangée d'actions Y aller / Site web / Appeler /
    Modifier en bas. */
-.place-title { font-size: 22px; font-weight: 700; }
-.place-address { color: #666; font-size: 14px; margin: 4px 0 12px; }
+.place-title { font: 700 24px var(--font-serif); color: var(--c-ink); }
+.place-address { color: var(--c-muted); font-size: 14px; margin: 6px 0 16px; padding-bottom: 16px; border-bottom: 1px solid var(--c-border); }
 
 /* Ligne statut : interrupteur style iOS avec l'emoji dans le bouton rond,
-   libellé à côté, étoiles à droite quand le lieu est "déjà testé". */
+   libellé à côté, étoiles à droite quand le lieu est "déjà testé". Reste
+   un interrupteur (pas la pilule pleine du mockup) pour ne pas changer la
+   structure/interaction existante — seule la couleur "testé" passe au
+   sapin de l'identité Carnet. */
 .statut-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0; border-bottom: none;
 }
 .statut-switch {
   position: relative; width: 58px; height: 34px; border: none; border-radius: 17px;
-  background: #e9e9eb; cursor: pointer; flex: none; transition: background 0.2s; padding: 0;
+  background: var(--c-surface-alt); cursor: pointer; flex: none; transition: background 0.2s; padding: 0;
 }
-.statut-switch.on { background: #f5c518; }
+.statut-switch.on { background: var(--c-status); }
 .statut-switch:disabled { cursor: default; }
 .statut-knob {
   position: absolute; top: 2px; left: 2px; width: 30px; height: 30px;
-  border-radius: 50%; background: #fff; display: flex; align-items: center;
+  border-radius: 50%; background: var(--c-white); display: flex; align-items: center;
   justify-content: center; font-size: 18px; transition: left 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .statut-switch.on .statut-knob { left: 26px; }
-.statut-label { font-size: 16px; font-weight: 500; }
+.statut-label { font: 500 16px var(--font-sans); color: var(--c-ink); }
 .statut-spacer { flex: 1; }
 
 /* Étoiles de notation (affichées seulement si "déjà testé"). Chaque étoile
    est un bouton ; la demi-étoile est rendue par un dégradé sur le glyphe. */
 .stars { display: flex; gap: 2px; }
 .star {
-  border: none; background: none; font-size: 26px; line-height: 1;
-  color: #d9d9de; cursor: pointer; padding: 0 1px;
+  border: none; background: none; font-size: 26px; line-height: 1; font-family: inherit;
+  color: var(--c-border); cursor: pointer; padding: 0 1px;
 }
-.star.full { color: #f5c518; }
+.star.full { color: var(--c-laiton); }
 .star.half {
-  background: linear-gradient(90deg, #f5c518 50%, #d9d9de 50%);
+  background: linear-gradient(90deg, var(--c-laiton) 50%, var(--c-border) 50%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .stars.readonly .star { cursor: default; }
@@ -347,27 +417,29 @@ html, body {
 .stars-input { cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .stars-input .star { font-size: 32px; }
 .rating-stars-row { display: flex; align-items: center; gap: 12px; }
-.rating-value { font-size: 15px; font-weight: 600; color: #666; min-width: 46px; }
+.rating-value { font: 600 15px var(--font-sans); color: var(--c-muted); min-width: 46px; }
 
 .place-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-.place-field { font-size: 14px; color: #333; white-space: pre-wrap; margin-bottom: 8px; }
-.place-added { font-size: 13px; color: #999; margin: 12px 0; }
+.place-field { font-size: 14.5px; line-height: 1.65; color: var(--c-ink-soft); white-space: pre-wrap; margin-bottom: 18px; }
+.place-added { font-size: 12.5px; color: var(--c-muted); margin: 6px 0 20px; }
 
-/* Rangée d'actions en bas de fiche : 4 boutons blancs bordés, icône
-   au-dessus du libellé, comme sur la réf. */
+h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
+
+/* Rangée d'actions en bas de fiche : 4 boutons bordés, icône au-dessus du
+   libellé, comme sur la réf. */
 .place-actions { display: flex; gap: 8px; margin-top: 8px; }
 .place-action {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: #fff; border: 1.5px solid #ddd; border-radius: 12px;
-  padding: 10px 4px; font-size: 13px; font-weight: 500; color: #1a1a1a;
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: var(--c-surface-alt); border: 1px solid var(--c-tag-border); border-radius: 12px;
+  padding: 13px 4px; font: 600 11px var(--font-sans); color: var(--c-ink);
   cursor: pointer; text-decoration: none;
 }
-.place-action-icon { font-size: 18px; }
+.place-action-icon { font-size: 19px; }
 .place-action:disabled, .place-action.disabled {
   opacity: 0.35; cursor: default; pointer-events: none;
 }
 .link-danger {
-  background: none; border: none; color: #c62828; font-size: 14px;
+  background: none; border: none; color: var(--c-danger); font: 600 14px var(--font-sans);
   text-decoration: underline; cursor: pointer; margin: 16px auto 0; display: block;
 }
 
@@ -375,106 +447,116 @@ html, body {
 /* Buttons (shared)                                                       */
 /* ---------------------------------------------------------------------- */
 .btn-primary, .btn-secondary, .btn-danger {
-  border: none; border-radius: 10px; padding: 12px 18px; font-size: 14px;
-  font-weight: 600; cursor: pointer;
+  border: none; border-radius: 10px; padding: 13px 18px; font: 600 14px var(--font-sans);
+  cursor: pointer;
 }
-.btn-primary { background: #1a1a1a; color: #fff; }
-.btn-secondary { background: #f0f0f0; color: #1a1a1a; }
-.btn-danger { background: #fdecea; color: #c62828; }
+.btn-primary { background: var(--c-ink); color: #fff; }
+.btn-secondary { background: var(--c-surface-alt); color: var(--c-ink); }
+.btn-danger { background: var(--c-surface); color: var(--c-danger); border: 1px solid var(--c-border); }
 .btn-small { padding: 8px 12px; font-size: 13px; }
 /* Bouton rectangulaire discret (écran réglages : "← Retour", etc.). */
 .icon-btn {
-  background: #f0f0f0; border: none; border-radius: 10px;
-  padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  background: var(--c-surface-alt); border: none; border-radius: 10px; font-family: inherit;
+  padding: 10px 14px; font-size: 14px; font-weight: 500; color: var(--c-ink); cursor: pointer; white-space: nowrap;
 }
 .topbar {
   display: flex; align-items: center; gap: 8px;
   padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--c-border);
 }
-.topbar h2 { font-size: 17px; font-weight: 600; }
+.topbar h2 { font: 600 18px var(--font-serif); color: var(--c-ink); }
 
 /* ---------------------------------------------------------------------- */
 /* Add/edit place form + Settings (share .form-body layout)               */
 /* ---------------------------------------------------------------------- */
 .form-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-.form-label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500; color: #333; }
+.form-label { display: flex; flex-direction: column; gap: 6px; font: 600 14.5px var(--font-sans); color: var(--c-ink); }
 .form-label input[type="text"], .form-label input[type="email"], .form-label textarea {
-  border: 1.5px solid #ddd; border-radius: 10px; padding: 10px 12px; font-size: 15px;
-  font-family: inherit; outline: none; resize: vertical;
+  border: 1px solid var(--c-border); border-radius: 10px; padding: 12px; font-size: 13.5px;
+  font-family: var(--font-sans); font-weight: 400; outline: none; resize: vertical; background: var(--c-white);
+  color: var(--c-ink);
 }
-.form-label input:focus, .form-label textarea:focus { border-color: #1a1a1a; }
+.form-label input:focus, .form-label textarea:focus { border-color: var(--c-ink); }
+.form-label textarea::placeholder, .form-label input::placeholder { color: var(--c-taupe); font-style: italic; }
 
 .address-suggestions { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
 .address-suggestion {
-  text-align: left; background: #f7f7f7; border: none; border-radius: 8px;
-  padding: 10px 12px; font-size: 14px; cursor: pointer;
+  text-align: left; background: var(--c-surface-alt); border: none; border-radius: 8px; font-family: inherit;
+  padding: 10px 12px; font-size: 14px; cursor: pointer; color: var(--c-ink);
 }
-.address-suggestion:active { background: #eee; }
+.address-suggestion:active { background: var(--c-tag-border); }
 
 /* --- Formulaire ajout/édition — réf. 03-ajout-lieu / 04-fiche-edition --- */
 .form-topbar { display: flex; align-items: center; gap: 12px; padding: 12px; }
-.form-topbar h2 { flex: 1; text-align: center; font-size: 18px; }
+.form-topbar h2 { flex: 1; text-align: center; font: 600 18px var(--font-serif); color: var(--c-ink); }
 .topbar-spacer { width: 44px; flex: none; } /* équilibre le ✕ à gauche pour centrer le titre */
 
 .place-search-block { display: flex; flex-direction: column; gap: 6px; }
 .place-search-input {
-  border: none; background: #f0f0f0; border-radius: 12px;
-  padding: 14px; font-size: 15px; outline: none; width: 100%;
+  border: 1px solid var(--c-tag-border); background: var(--c-surface-alt); border-radius: 12px;
+  padding: 14px; font-size: 14.5px; outline: none; width: 100%; font-family: inherit; color: var(--c-ink);
 }
+.place-search-input::placeholder { color: var(--c-muted); }
 
-/* Carte du lieu sélectionné (pastille jaune + nom + adresse). */
+/* Carte du lieu sélectionné (pastille + nom + adresse). */
 .place-selected-card {
   display: flex; align-items: center; gap: 12px;
-  background: #fffdf2; border: 1px solid #f5e9b0; border-radius: 12px; padding: 12px;
+  background: var(--c-surface-alt); border: 1px solid var(--c-tag-border); border-radius: 12px; padding: 12px;
 }
 .place-selected-pin {
-  width: 44px; height: 44px; border-radius: 50%; background: #f5c518;
+  width: 44px; height: 44px; border-radius: 50%; background: var(--c-ink);
   display: flex; align-items: center; justify-content: center; font-size: 20px; flex: none;
 }
 .place-selected-body { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .place-selected-name {
-  border: none; background: none; font-size: 17px; font-weight: 700;
+  border: none; background: none; font: 700 17px var(--font-serif); color: var(--c-ink);
   outline: none; width: 100%; padding: 0;
 }
-.place-selected-address { font-size: 13px; color: #666; }
+.place-selected-address { font-size: 13px; color: var(--c-muted); }
 
-.form-section { border-top: 6px solid #f2f2f4; margin: 4px -16px 0; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; }
-.form-section-title { font-size: 17px; font-weight: 700; }
+.form-section { border-top: 6px solid var(--c-bg); margin: 4px -16px 0; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; }
+.form-section-title { font: 600 17px var(--font-serif); color: var(--c-ink); }
 
-.form-tag-category h4 { font-size: 13px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
-.required-mark { color: #c62828; }
+.form-tag-category h4 {
+  font: 600 11px var(--font-sans); color: var(--c-muted); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 10px;
+}
+.required-mark { color: var(--c-danger); }
 .tag-chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 
-/* "+ Créer un nouveau tag" : pilule jaune bordée (réf. 04), qui révèle la
-   ligne emoji + nom au clic. */
+/* "+ Créer un nouveau tag" : contour sapin (réf. 04), révèle la ligne
+   emoji + nom au clic. */
 .new-tag-toggle {
-  display: block; margin: 0 auto 10px; background: #fff; border: 1.5px solid #f5c518;
-  color: #f5a300; border-radius: 22px; padding: 9px 18px; font-size: 14px;
-  font-weight: 600; cursor: pointer;
+  display: block; margin: 0 auto 10px; background: none; border: 1.5px solid var(--c-sapin);
+  color: var(--c-sapin); border-radius: 999px; padding: 9px 18px; font: 600 13.5px var(--font-sans);
+  cursor: pointer;
 }
 .new-tag-row { display: flex; gap: 6px; margin-bottom: 10px; }
 .new-tag-emoji { width: 46px; text-align: center; }
 .new-tag-emoji, .new-tag-label {
-  border: 1.5px solid #ddd; border-radius: 8px; padding: 8px; font-size: 13px; outline: none;
+  border: 1px solid var(--c-border); border-radius: 8px; padding: 8px; font-size: 13px; outline: none;
+  font-family: inherit; background: var(--c-white); color: var(--c-ink);
 }
 .new-tag-label { flex: 1; }
-.new-tag-add { background: #f0f0f0; border: none; border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+.new-tag-add {
+  background: var(--c-surface-alt); border: none; border-radius: 8px; padding: 8px 12px;
+  font-size: 13px; cursor: pointer; color: var(--c-ink); font-family: inherit;
+}
 
-/* Statut : deux gros boutons toggle "À essayer / Déjà testé" (réf. 04). */
+/* Statut : deux gros boutons toggle "À tester / Déjà testé" (réf. 04). */
 .statut-toggle-row { display: flex; gap: 10px; }
 .statut-toggle {
-  flex: 1; border: 1.5px solid #eee; background: #fafafa; border-radius: 26px;
-  padding: 13px 8px; font-size: 15px; font-weight: 500; color: #999; cursor: pointer;
+  flex: 1; border: 1.5px solid var(--c-tag-border); background: none; border-radius: 999px;
+  padding: 9px 16px; font: 500 13.5px var(--font-sans); color: var(--c-ink-soft); cursor: pointer;
 }
 .statut-toggle.selected {
-  background: #fff8e0; border-color: #f5c518; color: #1a1a1a; font-weight: 600;
+  background: var(--c-status); border-color: var(--c-status); color: #fff; font-weight: 600;
 }
 
-/* Bouton d'enregistrement pleine largeur, jaune (réf. "Mettre à jour"). */
+/* Bouton d'enregistrement pleine largeur (réf. "Mettre à jour"). */
 .btn-save {
-  background: #f5c518; color: #fff; border: none; border-radius: 26px;
-  padding: 16px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  background: var(--c-ink); color: #fff; border: none; border-radius: 12px;
+  padding: 17px; font: 600 16px var(--font-sans); cursor: pointer; margin-top: 8px;
 }
 
 .rating-input-row { display: flex; gap: 8px; align-items: center; }
@@ -483,16 +565,20 @@ html, body {
 /* ---------------------------------------------------------------------- */
 /* Settings screen                                                        */
 /* ---------------------------------------------------------------------- */
+.form-body h3 { font: 600 16px var(--font-serif); color: var(--c-ink); }
 .invite-form { display: flex; gap: 8px; }
-.invite-form input { flex: 1; border: 1.5px solid #ddd; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.invite-form input {
+  flex: 1; border: 1px solid var(--c-border); border-radius: 10px; padding: 13px 14px;
+  font-size: 14px; font-family: inherit; background: var(--c-white); color: var(--c-ink);
+}
 .reader-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+  padding: 10px 0; border-bottom: 1px solid var(--c-border);
 }
 .reader-info { display: flex; flex-direction: column; gap: 2px; }
-.reader-email { font-size: 14px; font-weight: 500; }
+.reader-email { font-size: 14px; font-weight: 500; color: var(--c-ink); }
 .reader-status { font-size: 12px; }
-.reader-status-active { color: #2e7d32; }
-.reader-status-revoked { color: #c62828; }
-.muted { color: #999; font-size: 14px; }
-.error-text { color: #c62828; font-size: 14px; }
+.reader-status-active { color: var(--c-sapin); }
+.reader-status-revoked { color: var(--c-danger); }
+.muted { color: var(--c-muted); font-size: 14px; }
+.error-text { color: var(--c-danger); font-size: 14px; }

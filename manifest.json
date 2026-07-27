@@ -1,10 +1,10 @@
 {
-  "name": "Ma carte",
-  "short_name": "Ma carte",
+  "name": "Miamapp by Max",
+  "short_name": "Miamapp by Max",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5d842",
-  "theme_color": "#f5d842",
+  "background_color": "#F3EEE3",
+  "theme_color": "#F3EEE3",
   "icons": [
     {
       "src": "icon.png",

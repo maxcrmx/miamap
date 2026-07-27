@@ -14,15 +14,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Ma carte</title>
+<title>Miamapp by Max</title>
 
 <!-- PWA / plein écran iOS -->
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Ma carte">
-<meta name="theme-color" content="#f5d842">
+<meta name="apple-mobile-web-app-title" content="Miamapp by Max">
+<meta name="theme-color" content="#F3EEE3">
 <link rel="apple-touch-icon" href="icon.png">
+
+<!-- Identité "Carnet" : Lora (titres) + Work Sans (UI) — voir style.css -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="style.css">
 
@@ -42,7 +47,7 @@
 <div id="auth-screen" class="top-screen active">
   <div class="auth-box">
     <div class="auth-icon">📍</div>
-    <h1>Ma carte</h1>
+    <h1>Miamapp by Max</h1>
     <p>Connecte-toi avec ton email pour accéder à la carte.</p>
     <form id="auth-form">
       <input type="email" id="auth-email" placeholder="ton@email.com" required autocomplete="email" />
@@ -110,7 +115,7 @@
 
   <div class="bottom-bar admin-only hidden">
     <button id="add-place-btn" class="fab" aria-label="Ajouter un lieu">+</button>
-    <button id="settings-open-btn" class="round-btn bottom-bar-right" aria-label="Réglages">⚙️</button>
+    <button id="settings-open-btn" class="settings-btn bottom-bar-right" aria-label="Réglages">Paramètres</button>
   </div>
 </div>
 
@@ -216,7 +221,7 @@
     <h2>Réglages</h2>
   </div>
   <div class="form-body">
-    <button id="logout-btn" class="btn-secondary">Se déconnecter</button>
+    <button id="logout-btn" class="btn-danger">Se déconnecter</button>
 
     <h3>Inviter un lecteur</h3>
     <form id="settings-invite-form" class="invite-form">
