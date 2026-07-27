@@ -82,9 +82,16 @@ function escapeXml(str) {
 // contraste mesuré de 1.00:1 — le corps du pin est indistinguable. Assombrir
 // le contour serait l'autre solution, mais elle va contre le rendu clair
 // voulu. L'ombre crée la séparation en gardant le pin quasi blanc.
+//
+// L'ombre est posée sur un cercle SÉPARÉ, sans trait, juste en dessous du
+// cercle visible : lui appliquer le filtre flou DIRECTEMENT sur le cercle
+// tracé (fill + stroke) adoucit aussi le bord du trait, qui paraît alors
+// plus épais que celui — non flouté — des pins de cluster. Avec deux
+// cercles superposés, le trait visible reste net et fait exactement
+// CIRCLE_STROKE_WIDTH, comme pour les clusters.
 function buildPinSvg(place) {
   const c = PIN_BOX / 2;
-  const r = PIN_CIRCLE / 2 - CIRCLE_STROKE_WIDTH / 2 - 1;
+  const r = circleRadius(PIN_CIRCLE);
   // Centre du badge posé EXACTEMENT sur le bord du cercle du pin (diagonale
   // haut-droite à 45°) : la moitié du badge chevauche l'intérieur du pin,
   // l'autre moitié déborde à l'extérieur — le classique point de
@@ -98,8 +105,8 @@ function buildPinSvg(place) {
       <filter id="s" x="-50%" y="-50%" width="200%" height="200%">
         <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.7" />
       </filter>
-      <circle cx="${c}" cy="${c}" r="${r}" fill="${PIN_FILL}" stroke="${PIN_STROKE}"
-              stroke-width="${CIRCLE_STROKE_WIDTH}" filter="url(#s)" />
+      <circle cx="${c}" cy="${c}" r="${r}" fill="${PIN_FILL}" filter="url(#s)" />
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${PIN_STROKE}" stroke-width="${CIRCLE_STROKE_WIDTH}" />
       <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="20">${escapeXml(pinIcon(place))}</text>
       ${badge}
     </svg>

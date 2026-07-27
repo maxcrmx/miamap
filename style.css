@@ -303,7 +303,11 @@ html, body {
    pour les tags disponibles non encore ajoutés. */
 .tag-pill.dimmed {
   background: none; color: var(--c-muted);
-  box-shadow: inset 0 0 0 1.5px var(--c-border);
+  /* Même épaisseur que le border 1px de .tag-pill (juste une couleur
+     différente) — un inset plus épais ici faisait paraître le contour des
+     tags non sélectionnés plus gras dès qu'un autre tag de la catégorie
+     est sélectionné. */
+  box-shadow: inset 0 0 0 1px var(--c-border);
   border-color: transparent;
 }
 
