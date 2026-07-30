@@ -256,7 +256,9 @@ html, body {
 
 /* Barre du bas : "+" centré qui déborde vers le haut, bouton réglages à
    droite. Toute la barre est admin-only (les lecteurs n'ont ni ajout ni
-   réglages).
+   réglages). Commune à l'écran carte ET à la vue Liste (elle vit dans
+   #main-screen, en dehors de #map-container/#list-container) : un seul
+   correctif ci-dessous suffit pour les deux.
 
    L'OMBRE PORTÉE VIT SUR LA BARRE ELLE-MÊME (pas sur chaque bouton) : avec
    une ombre par bouton et un fond de barre trop proche du fond de page,
@@ -264,22 +266,42 @@ html, body {
    un vide, plutôt que comme une seule barre continue portant deux
    contrôles. Une seule ombre, portée vers le haut par la barre, unifie
    l'ensemble ; .settings-btn n'a donc plus sa propre ombre (le "+" garde
-   la sienne : il est censé déborder au-dessus de la barre). */
+   la sienne : il est censé déborder au-dessus de la barre).
+
+   CORRECTIF "DOUBLE BARRE" : le padding-bottom réservait avant la zone
+   tampon (env(safe-area-inset-bottom), la bande au-dessus de la barre
+   d'accueil sur iPhone) sur le PADDING DROIT par erreur ("calc(...)" était
+   sur le 2e chiffre du raccourci padding, qui correspond à droite, pas en
+   bas). Résultat : la barre s'arrêtait bien avant le bord réel de l'écran,
+   et le fond de la page (une teinte différente, sans bordure ni ombre)
+   comblait le reste — visuellement, deux barres empilées. En mettant le
+   calc() sur le padding du bas, la barre s'étend elle-même jusqu'au bord
+   de l'écran : une seule zone, dont la hauteur totale = l'ancienne hauteur
+   de barre + l'ancienne zone tampon, comme demandé. */
 .bottom-bar {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  padding: 4px calc(env(safe-area-inset-bottom) + 12px) 6px 12px;
+  padding: 4px 12px calc(env(safe-area-inset-bottom) + 6px) 12px;
   border-top: 1px solid var(--c-border); background: var(--c-surface);
   box-shadow: 0 -2px 10px rgba(42,39,33,0.08);
 }
 .fab {
+  /* Taille +10 % par rapport à l'original (48px -> 53px, police et débord
+     du dessus mis à l'échelle dans la même proportion). */
   background: var(--c-sapin-active); color: #fff; border: none; border-radius: 50%;
-  width: 48px; height: 48px; font-size: 26px; font-weight: 500; cursor: pointer;
+  width: 53px; height: 53px; font-size: 29px; font-weight: 500; cursor: pointer;
   box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  margin-top: -19px; /* déborde au-dessus de la barre, comme sur Mapstr */
+  margin-top: -21px; /* déborde au-dessus de la barre, comme sur Mapstr */
   line-height: 1;
 }
-.bottom-bar-right { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+/* "top: 4px; height: 53px" (au lieu de "top: 50%" de toute la barre) : la
+   zone tampon en bas (padding-bottom, voir .bottom-bar) fait maintenant
+   partie de la même barre et peut être assez grande sur un iPhone à
+   encoche — un centrage à 50% de la barre ENTIÈRE aurait poussé la roue
+   crantée trop bas, plus alignée avec le "+". Ici, 4px = le padding-top de
+   .bottom-bar, 53px = la hauteur du "+" (.fab) : ça définit la même bande
+   que la ligne de boutons, quelle que soit la taille de la zone tampon. */
+.bottom-bar-right { position: absolute; right: 16px; top: 4px; height: 53px; display: flex; align-items: center; }
 /* Bouton rond icône seule (roue crantée) — avant un bouton texte
    "Paramètres", remplacé pour rejoindre le style icône du reste de la
    barre du haut (loupe, filtres) plutôt qu'un libellé. */
@@ -412,17 +434,35 @@ html, body {
   opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 30;
 }
 .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+/* Le fond de .bottom-sheet est --c-bg (le beige un peu plus soutenu de
+   l'écran carte/liste/réglages), PAS --c-surface (le crème plus clair de
+   la fiche elle-même) — exprès : sur iPhone à encoche, la zone tampon tout
+   en bas (au-dessus de la barre d'accueil, réservée ici par
+   padding-bottom: env(safe-area-inset-bottom)) doit avoir la MÊME couleur
+   que celle de l'écran "Ajouter un lieu" dans cette même zone (référence :
+   add_a_place_colors_bottom.jpeg — la bande tout en bas y est bien plus
+   beige que le reste du formulaire). Le contenu visible de la fiche
+   (.sheet-handle / .sheet-content ci-dessous) reprend --c-surface comme
+   avant — seule la nouvelle bande tout en bas, invisible jusqu'ici, prend
+   cette couleur ; aucune marge/espacement existant n'est modifié.
+   overflow:hidden fait que le fond --c-bg de ce conteneur ne déborde pas
+   des coins arrondis du haut (border-radius 22px 22px 0 0). */
 .bottom-sheet {
   position: fixed; left: 0; right: 0; bottom: 0; height: 75vh;
-  background: var(--c-surface); border-radius: 22px 22px 0 0; z-index: 31;
+  background: var(--c-bg); border-radius: 22px 22px 0 0; z-index: 31;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
   transform: translateY(100%); transition: transform 0.25s ease-out;
   display: flex; flex-direction: column;
   box-shadow: 0 -6px 18px rgba(42,39,33,0.12);
 }
 .bottom-sheet.open { transform: translateY(0); }
-.sheet-handle { padding: 10px; display: flex; justify-content: center; cursor: grab; touch-action: none; }
+.sheet-handle {
+  padding: 10px; display: flex; justify-content: center; cursor: grab; touch-action: none;
+  background: var(--c-surface); flex: none;
+}
 .sheet-handle-bar { width: 38px; height: 4px; border-radius: 2px; background: var(--c-border); }
-.sheet-content { flex: 1; overflow-y: auto; padding: 0 22px 24px; }
+.sheet-content { flex: 1; overflow-y: auto; padding: 0 22px 24px; background: var(--c-surface); }
 
 /* Fiche lieu — réf. reference-ui/05-fiche-a-essayer.jpeg et
    06-fiche-deja-teste.jpeg : interrupteur de statut + étoiles (si testé),
@@ -482,6 +522,16 @@ html, body {
 .place-added { font-size: 12.5px; color: var(--c-muted); margin: 6px 0 20px; }
 
 h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
+/* Fiche lieu : quand une rubrique (Top/Flop/Remarques/Commentaire) est
+   vide, js/place-detail.js affiche son titre <h4> mais saute le <p
+   class="place-field"> qui suit d'habitude (voir openPlaceDetail) — la
+   rubrique suivante colle alors directement au <h4> précédent (6px de
+   marge au lieu des 6+18=24px habituels quand un paragraphe s'intercale).
+   Cette règle ne s'applique qu'aux <h4> directement enchaînés (donc bien
+   au cas "rubrique vide suivie d'une autre rubrique") pour retrouver le
+   même espacement que dans le cas normal, sans toucher au cas normal
+   lui-même. */
+#place-sheet-content h4 + h4 { margin-top: 18px; }
 
 /* Rangée d'actions en bas de fiche : 4 boutons bordés, icône au-dessus du
    libellé, comme sur la réf. */

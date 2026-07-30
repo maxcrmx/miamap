@@ -127,10 +127,10 @@ export function openPlaceDetail(place) {
 
     <div class="place-tags">${tagPillsHtml(place)}</div>
 
-    ${place.top ? `<h4>👍 Top</h4><p class="place-field">${escapeHtml(place.top)}</p>` : ''}
-    ${place.bof ? `<h4>🤷‍♂️ Flop</h4><p class="place-field">${escapeHtml(place.bof)}</p>` : ''}
-    ${place.remarks ? `<h4>💬 Remarques</h4><p class="place-field">${escapeHtml(place.remarks)}</p>` : ''}
-    ${place.comment ? `<h4>📝 Commentaire</h4><p class="place-field">${escapeHtml(place.comment)}</p>` : ''}
+    <h4>👍 Top</h4>${place.top ? `<p class="place-field">${escapeHtml(place.top)}</p>` : ''}
+    <h4>🤷‍♂️ Flop</h4>${place.bof ? `<p class="place-field">${escapeHtml(place.bof)}</p>` : ''}
+    <h4>💬 Remarques</h4>${place.remarks ? `<p class="place-field">${escapeHtml(place.remarks)}</p>` : ''}
+    <h4>📝 Commentaire</h4>${place.comment ? `<p class="place-field">${escapeHtml(place.comment)}</p>` : ''}
 
     <p class="place-added">${addedDateText(place)}</p>
 
