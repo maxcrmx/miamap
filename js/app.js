@@ -197,6 +197,19 @@ function initMainScreenChrome() {
     if (!row.classList.contains('hidden')) document.getElementById('search-input').focus();
   });
 
+  // Recentre la carte sur la dernière position GPS connue (le point bleu).
+  // Le bouton est toujours visible, même sans position connue — dans ce
+  // cas (géolocalisation refusée/indisponible, ou pas encore reçue) on
+  // affiche un message d'erreur plutôt que de ne rien faire, même
+  // convention que les autres erreurs de l'app (alert()).
+  document.getElementById('locate-me-btn').addEventListener('click', () => {
+    if (lastKnownUserLocation) {
+      panTo(lastKnownUserLocation, 16);
+    } else {
+      alert("Impossible de trouver ta position. Vérifie que la géolocalisation est autorisée pour ce site, puis réessaie.");
+    }
+  });
+
   document.getElementById('filter-open-btn').addEventListener('click', () => {
     document.getElementById('filter-panel').classList.add('open');
     document.getElementById('filter-backdrop').classList.add('open');
@@ -280,10 +293,20 @@ function locateUser() {
 function startUserLocationWatch() {
   if (!navigator.geolocation) return;
   navigator.geolocation.watchPosition(
-    (pos) => setUserLocationMarker({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    (pos) => updateUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
     () => {}, // une erreur ponctuelle (GPS perdu un instant) ne doit pas faire disparaître le point : on garde sa dernière position connue
     { enableHighAccuracy: false, maximumAge: 10000, timeout: 10000 }
   );
+}
+
+// Dernière position GPS connue — mémorisée pour que le bouton "centrer sur
+// ma position" (id="locate-me-btn") sache où recentrer la carte au clic
+// sans redemander la géolocalisation à chaque fois.
+let lastKnownUserLocation = null;
+
+function updateUserLocation(loc) {
+  lastKnownUserLocation = loc;
+  setUserLocationMarker(loc);
 }
 
 // ----------------------------------------------------------------------------
@@ -308,7 +331,7 @@ async function bootMainApp() {
   initMap(document.getElementById('map-container'), center);
   panTo(center);
   if (granted) {
-    setUserLocationMarker(center); // évite d'attendre le premier tick de watchPosition
+    updateUserLocation(center); // évite d'attendre le premier tick de watchPosition
     startUserLocationWatch();
   }
 

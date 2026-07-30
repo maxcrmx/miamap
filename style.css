@@ -42,6 +42,17 @@
   --pill-font-size: 12.5px;
   --pill-radius: 8px;
   --pill-gap: 6px;
+  /* Sans cette ligne, la hauteur de la pilule dépend de la police que le
+     navigateur choisit pour CHAQUE emoji, pas seulement du padding — et les
+     drapeaux (tags Cuisine : 🇮🇹, 🇻🇳...) ont une hauteur de ligne native
+     différente des emojis "objet" (🍽️, 🌱...) utilisés par les autres
+     catégories. Ça rendait les pilules Cuisine plus épaisses que les autres
+     dans le panneau filtres et le formulaire, sans qu'aucune règle CSS ne
+     cible spécifiquement "Cuisine" — le padding était identique partout,
+     seule la ligne de texte grandissait. Fixer line-height ici verrouille
+     la hauteur de la boîte au padding + une ligne de texte standard, quel
+     que soit l'emoji affiché. */
+  --pill-line-height: 1;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -139,9 +150,15 @@ html, body {
   padding-bottom: 10px; pointer-events: auto;
 }
 
-.map-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* align-items: flex-start (pas "center") : la colonne de droite (loupe +
+   bouton "ma position") est plus haute que le bouton filtres/la pilule
+   Carte-Liste. Avec un centrage vertical, ces deux éléments plus courts se
+   retrouveraient décalés vers le bas, au milieu de la colonne de droite ;
+   alignés en haut, tout reste sur la même ligne. */
+.map-controls { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.map-controls-right { display: flex; flex-direction: column; gap: 8px; }
 
-/* Boutons ronds (filtres, loupe, roue dentée) comme sur Mapstr. */
+/* Boutons ronds (filtres, loupe, ma position) comme sur Mapstr. */
 .round-btn {
   background: var(--c-surface); color: var(--c-ink); border: none; border-radius: 50%;
   width: 44px; height: 44px; font-size: 18px; cursor: pointer;
@@ -234,7 +251,7 @@ html, body {
   flex-shrink: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--pill-gap);
   padding: var(--pill-padding-y) var(--pill-padding-x); border-radius: var(--pill-radius);
   background: var(--c-surface-alt); border: 1px solid var(--c-tag-border);
-  font: 500 var(--pill-font-size) var(--font-sans); color: var(--c-tag-text);
+  font: 500 var(--pill-font-size) var(--font-sans); line-height: var(--pill-line-height); color: var(--c-tag-text);
 }
 
 /* Barre du bas : "+" centré qui déborde vers le haut, bouton réglages à
@@ -263,10 +280,13 @@ html, body {
   line-height: 1;
 }
 .bottom-bar-right { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+/* Bouton rond icône seule (roue crantée) — avant un bouton texte
+   "Paramètres", remplacé pour rejoindre le style icône du reste de la
+   barre du haut (loupe, filtres) plutôt qu'un libellé. */
 .settings-btn {
-  background: none; color: var(--c-ink); border: none; border-radius: 12px;
-  height: 36px; padding: 0 16px; font: 600 13px var(--font-sans); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  background: none; color: var(--c-ink); border: none; border-radius: 50%;
+  width: 36px; height: 36px; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -303,7 +323,7 @@ html, body {
   display: inline-flex; align-items: center; gap: var(--pill-gap);
   border: 1px solid var(--c-tag-border); border-radius: var(--pill-radius);
   padding: var(--pill-padding-y) var(--pill-padding-x);
-  font: 500 var(--pill-font-size) var(--font-sans); cursor: pointer;
+  font: 500 var(--pill-font-size) var(--font-sans); line-height: var(--pill-line-height); cursor: pointer;
   background: var(--c-surface-alt); color: var(--c-tag-text); white-space: nowrap;
 }
 .tag-pill .pill-x {

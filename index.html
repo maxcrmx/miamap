@@ -93,7 +93,28 @@
         <button id="view-map-btn" class="view-pill-seg active" role="tab">Carte</button>
         <button id="view-list-btn" class="view-pill-seg" role="tab">Liste</button>
       </div>
-      <button id="search-toggle-btn" class="round-btn" aria-label="Rechercher un lieu">🔍</button>
+      <!-- Loupe (recherche par nom) + bouton "centrer sur ma position",
+           empilés verticalement à droite. Les deux icônes sont du SVG
+           tracé à la main (style Feather/Lucide) collé directement dans le
+           HTML — pas des emoji, et pas de dépendance/fichier externe à
+           charger puisque le site n'a pas de bundler.
+           Le bouton "centrer sur ma position" est toujours visible, même
+           sans position GPS connue : dans ce cas js/app.js affiche un
+           message d'erreur au clic plutôt que de le cacher. -->
+      <div class="map-controls-right">
+        <button id="search-toggle-btn" class="round-btn" aria-label="Rechercher un lieu">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+        <button id="locate-me-btn" class="round-btn" aria-label="Centrer sur ma position">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Recherche par nom, repliée par défaut (la loupe l'ouvre/ferme). -->
@@ -115,7 +136,16 @@
 
   <div class="bottom-bar admin-only hidden">
     <button id="add-place-btn" class="fab" aria-label="Ajouter un lieu">+</button>
-    <button id="settings-open-btn" class="settings-btn bottom-bar-right" aria-label="Réglages">Paramètres</button>
+    <!-- Roue crantée (Réglages) — même logique que la loupe/le pin
+         ci-dessus : SVG tracé en dur, pas d'emoji. Le texte "Réglages" reste
+         accessible aux lecteurs d'écran via aria-label même si l'icône seule
+         est affichée. -->
+    <button id="settings-open-btn" class="settings-btn bottom-bar-right" aria-label="Réglages">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
   </div>
 </div>
 
