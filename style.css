@@ -312,7 +312,6 @@ html, body {
      du dessus mis à l'échelle dans la même proportion). */
   background: var(--c-sapin-active); color: #fff; border: none; border-radius: 50%;
   width: 53px; height: 53px; font-size: 29px; font-weight: 500; cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   margin-top: -21px; /* déborde au-dessus de la barre, comme sur Mapstr */
   line-height: 1;
 }
@@ -334,10 +333,17 @@ html, body {
 }
 /* Bouton rond icône seule (roue crantée) — avant un bouton texte
    "Paramètres", remplacé pour rejoindre le style icône du reste de la
-   barre du haut (loupe, filtres) plutôt qu'un libellé. */
+   barre du haut (loupe, filtres) plutôt qu'un libellé.
+   Le SVG lui-même (épaisseur de trait 2, taille 20px, stroke=currentColor)
+   était déjà identique à celui de la loupe/du pin — l'écart venait du
+   CONTENEUR : ici transparent et à 36px, alors que .round-btn (loupe, pin,
+   filtres) est un disque plein (--c-surface) de 44px avec une ombre
+   portée. Repris exactement les mêmes valeurs pour que les trois boutons
+   se lisent comme une seule famille. */
 .settings-btn {
-  background: none; color: var(--c-ink); border: none; border-radius: 50%;
-  width: 36px; height: 36px; padding: 0; cursor: pointer;
+  background: var(--c-surface); color: var(--c-ink); border: none; border-radius: 50%;
+  width: 44px; height: 44px; padding: 0; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   display: flex; align-items: center; justify-content: center;
 }
 
