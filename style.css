@@ -281,16 +281,18 @@ html, body {
    pousse ses boutons vers le haut via padding-bottom, sans repeindre quoi
    que ce soit par-dessus.
 
-   PADDING DU BAS : env(safe-area-inset-bottom) + 6px. Le env() est de
+   PADDING DU BAS : env(safe-area-inset-bottom) + 14px. Le env() est de
    retour ici À BON DROIT : depuis le bloc "MODE PWA INSTALLÉE (option A+)"
    en fin de fichier, l'écran parent descend jusqu'au bord PHYSIQUE de
    l'iPhone (mesuré : 100vh = 844px, session 15) — la barre touche donc
    réellement le bord, et env(bottom) (34px sur iPhone à encoche, 0
-   ailleurs) est exactement le dégagement nécessaire pour que les boutons
-   ne passent pas sous la barre d'accueil. L'échec passé de env() (session
-   11) venait d'une géométrie où l'écran ne descendait PAS jusqu'en bas —
-   le padding s'ajoutait au mauvais endroit. Géométrie corrigée = env()
-   redevient l'outil juste.
+   ailleurs) est le dégagement de la barre d'accueil. L'échec passé de
+   env() (session 11) venait d'une géométrie où l'écran ne descendait PAS
+   jusqu'en bas — géométrie corrigée = env() redevient l'outil juste.
+   Le "+ 14px" (et non + 6px comme au premier essai) vient de la photo
+   ui_bottom_bar/6_last_verif.jpeg : avec 6px, le bas du "+" affleurait la
+   zone du home indicator et la roue crantée y entrait — 14px remonte les
+   deux boutons entièrement au-dessus, avec une vraie marge visuelle.
 
    L'OMBRE PORTÉE VIT SUR LA BARRE ELLE-MÊME (pas sur chaque bouton) : avec
    une ombre par bouton, les deux boutons se lisaient comme deux pilules
@@ -301,7 +303,7 @@ html, body {
 .bottom-bar {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  padding: 4px 12px calc(env(safe-area-inset-bottom, 0px) + 6px) 12px;
+  padding: 4px 12px calc(env(safe-area-inset-bottom, 0px) + 14px) 12px;
   border-top: 1px solid var(--c-border);
   box-shadow: 0 -2px 10px rgba(42,39,33,0.08);
 }
@@ -314,14 +316,22 @@ html, body {
   margin-top: -21px; /* déborde au-dessus de la barre, comme sur Mapstr */
   line-height: 1;
 }
-/* "top: 4px; height: 53px" plutôt que "top: 50%" de toute la barre : le
-   padding du bas (dégagement barre d'accueil, env() ci-dessus) est plus
-   grand que celui du haut (4px), donc un centrage à 50% de la barre
-   ENTIÈRE décalerait la roue crantée vers le bas, plus alignée avec le
-   "+". Ici, 4px = le padding-top de .bottom-bar, 53px = la hauteur du "+"
-   (.fab) : ça cale la roue crantée exactement sur la ligne des boutons,
-   indépendamment du padding du bas. */
-.bottom-bar-right { position: absolute; right: 16px; top: 4px; height: 53px; display: flex; align-items: center; }
+/* Bande verticale de la roue crantée = EXACTEMENT la zone de contenu de la
+   barre : mêmes ancres que ses paddings (top 4px, bottom env()+14px), et
+   la roue se centre dedans. L'ancienne version figeait "height: 53px"
+   (hauteur du "+"), calculée pour la géométrie d'avant l'option A+ — dès
+   que la barre a atteint le bord physique, cette bande figée débordait
+   dans la zone du home indicator (photo ui_bottom_bar/6_last_verif.jpeg :
+   roue crantée à cheval sur la zone système). En reprenant les MÊMES
+   valeurs que le padding de .bottom-bar, la roue suit automatiquement
+   tout futur ajustement du dégagement — les deux ne peuvent plus diverger.
+   (Garder ces deux valeurs synchronisées avec le padding de .bottom-bar
+   ci-dessus si elles changent un jour.) */
+.bottom-bar-right {
+  position: absolute; right: 16px;
+  top: 4px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  display: flex; align-items: center;
+}
 /* Bouton rond icône seule (roue crantée) — avant un bouton texte
    "Paramètres", remplacé pour rejoindre le style icône du reste de la
    barre du haut (loupe, filtres) plutôt qu'un libellé. */

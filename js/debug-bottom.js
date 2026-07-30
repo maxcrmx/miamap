@@ -40,7 +40,7 @@
   // l'app installée sert encore un vieux bundle en cache — une des causes
   // possibles du "rien ne change malgré les fixes" (l'écran d'accueil iOS
   // peut garder une copie périmée : supprimer l'icône et réinstaller).
-  var VERSION = 'S15b-2026-07-30'; // S15b = option A+ implémentée (écrans en 100vh via @media standalone)
+  var VERSION = 'S15c-2026-07-30'; // S15c = boutons du bas remontés au-dessus du home indicator (env()+14px)
 
   var Z = 2147483000; // au-dessus de tout le reste de l'app
 
