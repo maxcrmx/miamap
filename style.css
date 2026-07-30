@@ -87,6 +87,38 @@ html, body {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+
+/* ----------------------------------------------------------------------
+   LA BANDE DU BAS D'ÉCRAN (PWA iPhone) — le vrai correctif, mesuré sur
+   l'appareil réel (rapport ui_bottom_bar/report.txt, session 14).
+
+   CE QUE LE RAPPORT A PROUVÉ : en app installée (standalone +
+   black-translucent), le "layout viewport" iOS — la référence de tout
+   position:fixed — fait écran MOINS barre de statut (797px sur 844).
+   Résultat : AUCUN élément de la page ne peut atteindre les ~47 derniers
+   px de l'écran physique (tous s'arrêtent à 797.0 pile, mesuré sur les 5
+   écrans). Cette zone est peinte par le CANVAS du document, c'est-à-dire
+   le fond de <html> ci-dessus — c'est LUI la fameuse "bande" : beige
+   (--c-bg) en permanence, il jure avec les écrans dont la surface est
+   crème (--c-surface : formulaire d'ajout, fiche lieu), exactement à la
+   frontière y=797. C'est pour ça que 3 fixes sur .bottom-bar/.bottom-sheet
+   n'ont RIEN changé : la bande n'a jamais été un élément de la page.
+
+   LE FIX : on ne peut pas agrandir le layout viewport (comportement
+   WebKit, aucune meta ne le change sans sacrifier le rendu bord-à-bord
+   du haut), mais on peut faire suivre au canvas la couleur de l'écran
+   qui touche le bas à cet instant. html:has(...) = "si la page contient
+   actuellement tel écran ouvert" — pur CSS, réévalué en direct quand les
+   classes .open changent (support Safari/iOS depuis 15.4 ; sans support,
+   on retombe sur le beige actuel, ni mieux ni pire qu'avant).
+   La transition adoucit le changement pendant l'animation d'ouverture
+   (0.25s, calée sur celle de la fiche/du formulaire). */
+html { transition: background-color 0.25s ease-out; }
+html:has(#place-form-screen.open),
+html:has(#place-sheet.open) {
+  background: var(--c-surface);
+}
+
 .hidden { display: none !important; }
 
 /* ---------------------------------------------------------------------- */

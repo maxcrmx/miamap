@@ -40,7 +40,7 @@
   // l'app installée sert encore un vieux bundle en cache — une des causes
   // possibles du "rien ne change malgré les fixes" (l'écran d'accueil iOS
   // peut garder une copie périmée : supprimer l'icône et réinstaller).
-  var VERSION = 'S14-2026-07-30';
+  var VERSION = 'S14b-2026-07-30'; // b = ajout mesures metas iOS + canvas (fix bande)
 
   var Z = 2147483000; // au-dessus de tout le reste de l'app
 
@@ -130,12 +130,27 @@
     }).join('\n');
   }
 
+  // Contenu réel d'une balise <meta name=...> telle qu'elle est dans le DOM
+  // (donc telle qu'iOS l'a lue) — '(absente)' si elle n'existe pas.
+  function metaContent(name) {
+    var el = document.querySelector('meta[name="' + name + '"]');
+    return el ? '"' + el.getAttribute('content') + '"' : '(absente)';
+  }
+
   function buildReport() {
     var w = window.innerWidth, h = window.innerHeight;
     var cs = getComputedStyle(probe);
     var standalone = (navigator.standalone === true) ||
       (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     var vv = window.visualViewport;
+
+    // La "bande" : zone entre le bas du layout viewport (h) et le bas
+    // physique de l'écran — peinte par le canvas (fond de <html>), hors de
+    // portée de tout élément positionné. Voir le commentaire dans style.css.
+    var stripHeight = screen.height - h;
+    var canvasColor = getComputedStyle(document.documentElement).backgroundColor;
+    var formOpen = !!document.querySelector('#place-form-screen.open');
+    var sheetOpen = !!document.querySelector('#place-sheet.open');
 
     var lines = [
       'MIAMAP — DIAGNOSTIC BAS D\'ÉCRAN  [' + VERSION + ']',
@@ -159,6 +174,20 @@
       'top=' + cs.paddingTop + '  right=' + cs.paddingRight +
         '  bottom=' + cs.paddingBottom + '  left=' + cs.paddingLeft,
       '→ bottom=0px sur un iPhone à encoche = viewport-fit=cover inactif.',
+      '',
+      '--- MÉTAS iOS (telles que présentes dans le DOM) ---',
+      'apple-mobile-web-app-status-bar-style : ' + metaContent('apple-mobile-web-app-status-bar-style'),
+      'apple-mobile-web-app-capable          : ' + metaContent('apple-mobile-web-app-capable'),
+      'viewport : ' + metaContent('viewport'),
+      '',
+      '--- LA BANDE (zone hors layout viewport, peinte par le canvas) ---',
+      'hauteur : screen(' + screen.height + ') − innerH(' + h + ') = ' + stripHeight + 'px',
+      'couleur ACTUELLE du canvas (fond de <html>) : ' + canvasColor,
+      'déclencheurs du fix : formulaire ouvert=' + formOpen + '  fiche ouverte=' + sheetOpen,
+      '→ attendu : rgb(251, 248, 241) [crème] si formulaire OU fiche ouvert,',
+      '            rgb(243, 238, 227) [beige] sinon (carte/liste/réglages).',
+      '→ si la couleur ne bascule pas alors qu\'un des deux est "true",',
+      '  le sélecteur html:has(...) n\'est pas appliqué sur cet appareil.',
       '',
       '--- FONDS CALCULÉS (live) ---',
       describe('html            ', document.documentElement),
