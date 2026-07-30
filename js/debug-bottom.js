@@ -40,7 +40,7 @@
   // l'app installée sert encore un vieux bundle en cache — une des causes
   // possibles du "rien ne change malgré les fixes" (l'écran d'accueil iOS
   // peut garder une copie périmée : supprimer l'icône et réinstaller).
-  var VERSION = 'S14b-2026-07-30'; // b = ajout mesures metas iOS + canvas (fix bande)
+  var VERSION = 'S15-2026-07-30'; // S15 = test d'extension sous le layout viewport (session 15)
 
   var Z = 2147483000; // au-dessus de tout le reste de l'app
 
@@ -73,6 +73,8 @@
   var report = document.createElement('div');
   panel.appendChild(copyBtn);
   panel.appendChild(report);
+  // (extBtn est inséré entre copyBtn et report une fois créé, plus bas —
+  // l'ordre d'apparition dans le panneau : Copier, Test extension, rapport.)
 
   // Ligne ROUGE : collée à bottom:0 du viewport web. Tout ce qui est visible
   // SOUS elle n'appartient pas à la page.
@@ -95,6 +97,66 @@
     'position:fixed;visibility:hidden;pointer-events:none;' +
     'padding-top:env(safe-area-inset-top, 0px);padding-right:env(safe-area-inset-right, 0px);' +
     'padding-bottom:env(safe-area-inset-bottom, 0px);padding-left:env(safe-area-inset-left, 0px);';
+
+  // --------------------------------------------------------------------------
+  // TEST D'EXTENSION (session 15) — la question à trancher sur l'appareil :
+  // un élément peut-il PEINDRE sous la limite du layout viewport (797px),
+  // dans la bande des ~47px du bas que position:fixed n'atteint pas ?
+  // Trois techniques candidates, chacune matérialisée par une colonne colorée
+  // ancrée en haut de l'écran avec un GROS bouchon plein à son extrémité
+  // basse. Verdict à l'œil : si un bouchon coloré est visible SOUS la ligne
+  // ROUGE (au niveau de la barre d'accueil), la technique fonctionne et on
+  // peut avoir à la fois le haut translucide ET le bas contrôlé (option A+).
+  // Si les trois bouchons s'arrêtent À la ligne rouge : WebKit clippe, le
+  // compromis (status bar opaque) devient la seule voie.
+  // --------------------------------------------------------------------------
+  // Sondes numériques : hauteur réellement calculée des 4 unités viewport.
+  // La doc communautaire (gist "iPhone PWA game guide") affirme que 100vh
+  // est correct dès le démarrage à froid en PWA alors qu'innerHeight/dvh
+  // restent figés à écran−status-bar tant qu'aucune rotation n'a eu lieu.
+  var unitProbes = {};
+  ['100vh', '100svh', '100lvh', '100dvh'].forEach(function (unit) {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:0;left:0;width:1px;visibility:hidden;pointer-events:none;height:' + unit + ';';
+    unitProbes[unit] = el;
+  });
+
+  // Colonnes visuelles. VERT = height:100vh (pur CSS). ORANGE =
+  // height:screen.height en px posé par JS (la piste "forcer via JS" de la
+  // demande). BLEU = height:100lvh (largest viewport). Semi-transparentes
+  // pour voir l'app dessous, bouchon opaque de 10px en bas de chacune.
+  var extCols = [
+    { color: 'rgba(0,160,0,0.35)', cap: '#00a000', left: '22%', height: '100vh', label: 'VERT=100vh' },
+    { color: 'rgba(255,140,0,0.35)', cap: '#ff8c00', left: '47%', height: null, label: 'ORANGE=screen.height(px JS)' },
+    { color: 'rgba(0,90,255,0.35)', cap: '#005aff', left: '72%', height: '100lvh', label: 'BLEU=100lvh' },
+  ].map(function (spec) {
+    var el = document.createElement('div');
+    el.style.cssText =
+      'position:fixed;top:0;width:20px;display:none;pointer-events:none;' +
+      'z-index:' + (Z - 1) + ';left:' + spec.left + ';background:' + spec.color +
+      ';border-bottom:10px solid ' + spec.cap + ';' +
+      (spec.height ? 'height:' + spec.height + ';' : '');
+    el.dataset.js = spec.height ? '' : '1';
+    return el;
+  });
+  var extOn = false;
+
+  var extBtn = document.createElement('button');
+  extBtn.textContent = '🧪 Test extension bas : OFF';
+  extBtn.style.cssText =
+    'display:block;margin:0 0 8px;padding:6px 10px;border-radius:8px;' +
+    'border:1px solid #ff8c00;background:none;color:#ff8c00;font:12px ui-monospace,monospace;';
+  extBtn.addEventListener('click', function () {
+    extOn = !extOn;
+    extBtn.textContent = '🧪 Test extension bas : ' + (extOn ? 'ON' : 'OFF');
+    extCols.forEach(function (el) {
+      el.style.display = extOn ? 'block' : 'none';
+      // Colonne ORANGE : hauteur = écran physique en px, posée par JS —
+      // c'est le test direct de la piste "ignorer innerHeight, utiliser
+      // screen.height". Recalculée à chaque activation.
+      if (el.dataset.js) el.style.height = screen.height + 'px';
+    });
+  });
 
   // --------------------------------------------------------------------------
   // Collecte des mesures
@@ -189,6 +251,15 @@
       '→ si la couleur ne bascule pas alors qu\'un des deux est "true",',
       '  le sélecteur html:has(...) n\'est pas appliqué sur cet appareil.',
       '',
+      '--- TEST EXTENSION (session 15) — unités viewport mesurées ---',
+      '100vh=' + unitProbes['100vh'].offsetHeight + 'px  100svh=' + unitProbes['100svh'].offsetHeight +
+        'px  100lvh=' + unitProbes['100lvh'].offsetHeight + 'px  100dvh=' + unitProbes['100dvh'].offsetHeight + 'px',
+      '(référence : innerH=' + h + '  écran physique=' + screen.height + ')',
+      '→ une unité à ' + screen.height + 'px = elle « voit » le plein écran malgré innerH.',
+      'Bouton 🧪 ci-dessus : 3 colonnes, VERT=100vh, ORANGE=screen.height(px JS),',
+      'BLEU=100lvh. À l\'œil : quels BOUCHONS de couleur descendent SOUS la ligne',
+      'ROUGE, jusqu\'au bord physique (barre d\'accueil) ? → dis-le-moi par couleur.',
+      '',
       '--- FONDS CALCULÉS (live) ---',
       describe('html            ', document.documentElement),
       describe('body            ', document.body),
@@ -228,9 +299,13 @@
     if (open) {
       refresh();
       timer = setInterval(refresh, 1000); // mesures live (rotation, clavier, etc.)
-    } else if (timer) {
-      clearInterval(timer);
-      timer = null;
+    } else {
+      if (timer) { clearInterval(timer); timer = null; }
+      // Fermer le panneau éteint aussi le test d'extension : pas de
+      // colonnes colorées qui traînent par-dessus l'app.
+      extOn = false;
+      extBtn.textContent = '🧪 Test extension bas : OFF';
+      extCols.forEach(function (el) { el.style.display = 'none'; });
     }
   });
 
@@ -249,6 +324,9 @@
   // l'app elle-même, quoi qu'il arrive.
   try {
     document.body.appendChild(probe);
+    Object.keys(unitProbes).forEach(function (u) { document.body.appendChild(unitProbes[u]); });
+    extCols.forEach(function (el) { document.body.appendChild(el); });
+    panel.insertBefore(extBtn, report);
     document.body.appendChild(redLine);
     document.body.appendChild(magentaLine);
     document.body.appendChild(panel);
