@@ -53,20 +53,6 @@
      la hauteur de la boîte au padding + une ligne de texte standard, quel
      que soit l'emoji affiché. */
   --pill-line-height: 1;
-  /* Décalage fixe (PAS de env(safe-area-inset-bottom)) qui pousse les
-     boutons du bas (barre carte/liste, fiche lieu, écran "Ajouter un
-     lieu"/Réglages) vers le haut, loin de la barre d'accueil iPhone.
-     Same logique que le haut (voir .topbar / .top-overlay : padding-top
-     avec env(safe-area-inset-top), AUCUN fond dédié sur ces éléments —
-     juste du padding sur un conteneur transparent qui laisse voir le fond
-     UNIQUE de l'écran parent). Deux tentatives précédentes ont échoué :
-     env(safe-area-inset-bottom) (a cassé le rendu) puis cette même
-     variable en dur à 16px MAIS combinée à un fond dédié sur .bottom-bar
-     (var(--c-surface), différent du fond var(--c-bg) de #main-screen) —
-     exactement le genre de bloc à fond dédié que le haut n'a jamais eu.
-     Cette fois : uniquement du padding, aucun élément du bas n'a plus son
-     propre fond — voir .bottom-bar et .bottom-sheet plus bas. */
-  --bottom-margin: 28px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -88,36 +74,13 @@ html, body {
   text-size-adjust: 100%;
 }
 
-/* ----------------------------------------------------------------------
-   LA BANDE DU BAS D'ÉCRAN (PWA iPhone) — le vrai correctif, mesuré sur
-   l'appareil réel (rapport ui_bottom_bar/report.txt, session 14).
-
-   CE QUE LE RAPPORT A PROUVÉ : en app installée (standalone +
-   black-translucent), le "layout viewport" iOS — la référence de tout
-   position:fixed — fait écran MOINS barre de statut (797px sur 844).
-   Résultat : AUCUN élément de la page ne peut atteindre les ~47 derniers
-   px de l'écran physique (tous s'arrêtent à 797.0 pile, mesuré sur les 5
-   écrans). Cette zone est peinte par le CANVAS du document, c'est-à-dire
-   le fond de <html> ci-dessus — c'est LUI la fameuse "bande" : beige
-   (--c-bg) en permanence, il jure avec les écrans dont la surface est
-   crème (--c-surface : formulaire d'ajout, fiche lieu), exactement à la
-   frontière y=797. C'est pour ça que 3 fixes sur .bottom-bar/.bottom-sheet
-   n'ont RIEN changé : la bande n'a jamais été un élément de la page.
-
-   LE FIX : on ne peut pas agrandir le layout viewport (comportement
-   WebKit, aucune meta ne le change sans sacrifier le rendu bord-à-bord
-   du haut), mais on peut faire suivre au canvas la couleur de l'écran
-   qui touche le bas à cet instant. html:has(...) = "si la page contient
-   actuellement tel écran ouvert" — pur CSS, réévalué en direct quand les
-   classes .open changent (support Safari/iOS depuis 15.4 ; sans support,
-   on retombe sur le beige actuel, ni mieux ni pire qu'avant).
-   La transition adoucit le changement pendant l'animation d'ouverture
-   (0.25s, calée sur celle de la fiche/du formulaire). */
-html { transition: background-color 0.25s ease-out; }
-html:has(#place-form-screen.open),
-html:has(#place-sheet.open) {
-  background: var(--c-surface);
-}
+/* NOTE bas d'écran (PWA iPhone) : la « bande » qui a résisté à plusieurs
+   sessions venait du layout viewport iOS qui s'arrête à écran − barre de
+   statut. Corrigé par le bloc "MODE PWA INSTALLÉE (option A+)" tout en BAS
+   de ce fichier — lis-le avant de toucher à la géométrie des écrans. Un
+   ancien palliatif (canvas html:has(...) coloré selon l'écran ouvert) a
+   été retiré : les écrans couvrent désormais eux-mêmes toute la hauteur
+   physique, le canvas n'est plus jamais visible en bas. */
 
 .hidden { display: none !important; }
 
@@ -243,7 +206,12 @@ html:has(#place-sheet.open) {
 .sort-row label:has(input:checked) { color: var(--c-ink); font-weight: 600; }
 
 #map-container { flex: 1; }
-#list-container { flex: 1; overflow-y: auto; padding: 12px 16px 16px; }
+/* env() dans le padding du bas : pour les LECTEURS (barre "+"/réglages
+   masquée), la liste descend jusqu'au bord physique en PWA — la dernière
+   ligne doit rester lisible au-dessus de la barre d'accueil. Pour l'admin,
+   la .bottom-bar occupe le bas et env() ne fait qu'ajouter une marge de
+   fin de liste inoffensive. */
+#list-container { flex: 1; overflow-y: auto; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
 .list-empty { text-align: center; color: var(--c-muted); padding: 40px 20px; }
 
 /* Carte unique enveloppant toutes les lignes (réf. écran "Liste" du
@@ -311,14 +279,18 @@ html:has(#place-sheet.open) {
    #main-screen (le parent) peint DÉJÀ tout l'écran en var(--c-bg), du haut
    jusqu'au bord bas ; .bottom-bar n'est qu'un conteneur transparent qui
    pousse ses boutons vers le haut via padding-bottom, sans repeindre quoi
-   que ce soit par-dessus. Deux tentatives précédentes ont laissé une bande
-   d'une couleur différente en bas d'écran : la première utilisait
-   env(safe-area-inset-bottom) (rendu cassé) ; la seconde avait corrigé la
-   valeur en px mais gardait un fond var(--c-surface) codé ici — une
-   couleur DIFFÉRENTE de var(--c-bg) du parent, ce qui recréait la même
-   bande visible quel que soit le padding utilisé. Border-top et
-   box-shadow restent : une simple ligne + une ombre, pas un bloc de
-   couleur, donc pas de conflit avec le fond du parent.
+   que ce soit par-dessus.
+
+   PADDING DU BAS : env(safe-area-inset-bottom) + 6px. Le env() est de
+   retour ici À BON DROIT : depuis le bloc "MODE PWA INSTALLÉE (option A+)"
+   en fin de fichier, l'écran parent descend jusqu'au bord PHYSIQUE de
+   l'iPhone (mesuré : 100vh = 844px, session 15) — la barre touche donc
+   réellement le bord, et env(bottom) (34px sur iPhone à encoche, 0
+   ailleurs) est exactement le dégagement nécessaire pour que les boutons
+   ne passent pas sous la barre d'accueil. L'échec passé de env() (session
+   11) venait d'une géométrie où l'écran ne descendait PAS jusqu'en bas —
+   le padding s'ajoutait au mauvais endroit. Géométrie corrigée = env()
+   redevient l'outil juste.
 
    L'OMBRE PORTÉE VIT SUR LA BARRE ELLE-MÊME (pas sur chaque bouton) : avec
    une ombre par bouton, les deux boutons se lisaient comme deux pilules
@@ -329,7 +301,7 @@ html:has(#place-sheet.open) {
 .bottom-bar {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  padding: 4px 12px var(--bottom-margin) 12px;
+  padding: 4px 12px calc(env(safe-area-inset-bottom, 0px) + 6px) 12px;
   border-top: 1px solid var(--c-border);
   box-shadow: 0 -2px 10px rgba(42,39,33,0.08);
 }
@@ -343,12 +315,12 @@ html:has(#place-sheet.open) {
   line-height: 1;
 }
 /* "top: 4px; height: 53px" plutôt que "top: 50%" de toute la barre : le
-   padding du bas (--bottom-margin) est plus grand que celui du haut
-   (4px), donc un centrage à 50% de la barre ENTIÈRE décalerait la roue
-   crantée vers le bas, plus alignée avec le "+". Ici, 4px = le padding-top
-   de .bottom-bar, 53px = la hauteur du "+" (.fab) : ça cale la roue
-   crantée exactement sur la ligne des boutons, indépendamment du padding
-   du bas. */
+   padding du bas (dégagement barre d'accueil, env() ci-dessus) est plus
+   grand que celui du haut (4px), donc un centrage à 50% de la barre
+   ENTIÈRE décalerait la roue crantée vers le bas, plus alignée avec le
+   "+". Ici, 4px = le padding-top de .bottom-bar, 53px = la hauteur du "+"
+   (.fab) : ça cale la roue crantée exactement sur la ligne des boutons,
+   indépendamment du padding du bas. */
 .bottom-bar-right { position: absolute; right: 16px; top: 4px; height: 53px; display: flex; align-items: center; }
 /* Bouton rond icône seule (roue crantée) — avant un bouton texte
    "Paramètres", remplacé pour rejoindre le style icône du reste de la
@@ -376,7 +348,10 @@ html:has(#place-sheet.open) {
 .side-panel.open { transform: translateX(0); }
 .side-panel-header { padding: calc(env(safe-area-inset-top) + 16px) 16px 16px; border-bottom: 1px solid var(--c-border); }
 .side-panel-header h2 { font: 700 22px var(--font-serif); color: var(--c-ink); }
-.side-panel-content { flex: 1; overflow-y: auto; padding: 12px 16px; }
+/* padding du bas avec env() : en PWA le panneau descend jusqu'au bord
+   physique (bloc option A+ en fin de fichier), le dernier groupe de tags
+   doit rester au-dessus de la barre d'accueil. */
+.side-panel-content { flex: 1; overflow-y: auto; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px); }
 
 .filter-section { margin-bottom: 20px; }
 .filter-section h3 {
@@ -482,28 +457,16 @@ html:has(#place-sheet.open) {
   opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 30;
 }
 .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
-/* Une version précédente donnait à .bottom-sheet un fond --c-bg + un
-   padding-bottom: env(safe-area-inset-bottom) + overflow:hidden pour
-   colorer la zone tampon iPhone comme sur l'écran "Ajouter un lieu" — ça a
-   cassé le rendu (bande visible en trop, ou mal placée selon l'appareil).
-   Abandonné : .bottom-sheet garde un fond UNIQUE (--c-surface), comme
-   .top-screen pour les écrans plein écran — pas de second fond ajouté
-   nulle part à l'intérieur (.sheet-handle et .sheet-content n'en ont pas :
-   ils laissent voir celui-ci). La marge du bas de .sheet-content utilise
-   --bottom-margin (voir :root), la même valeur fixe que la barre du bas
-   et l'écran "Ajouter un lieu".
+/* .bottom-sheet garde un fond UNIQUE (--c-surface) — pas de second fond à
+   l'intérieur (.sheet-handle et .sheet-content n'en ont pas : ils laissent
+   voir celui-ci).
 
-   height: 75dvh (et non 75vh) : Safari iOS calcule "vh" sur la plus
-   grande hauteur de viewport possible (barre d'adresse rétractée), ce qui
-   peut laisser ce panneau plus court que l'écran réellement visible et
-   exposer un espace vide (donc le fond assombri de .sheet-backdrop, une
-   AUTRE couleur) juste sous son bord bas — pas un "bloc à fond dédié"
-   ajouté par erreur, mais le même symptôme (bande d'une couleur
-   différente en bas). "dvh" (dynamic viewport height) se recalcule selon
-   la barre d'adresse visible à l'instant T et correspond à ce qui est
-   réellement affiché. Repli en 75vh d'abord pour les navigateurs sans
-   support de dvh (la seconde déclaration écrase la première partout où
-   dvh est reconnu). */
+   Géométrie NAVIGATEUR ci-dessous : ancrée en bas du viewport, hauteur
+   75dvh (dvh = hauteur réellement visible, la barre d'outils de Safari
+   navigateur pouvant rétrécir le viewport ; repli 75vh pour les vieux
+   navigateurs sans dvh). En PWA INSTALLÉE cette géométrie est remplacée
+   par le bloc "option A+" en fin de fichier (top/height en vh), car
+   bottom: 0 s'y arrête 47px au-dessus du bord physique de l'écran. */
 .bottom-sheet {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: 75vh;
@@ -516,7 +479,10 @@ html:has(#place-sheet.open) {
 .bottom-sheet.open { transform: translateY(0); }
 .sheet-handle { padding: 10px; display: flex; justify-content: center; cursor: grab; touch-action: none; }
 .sheet-handle-bar { width: 38px; height: 4px; border-radius: 2px; background: var(--c-border); }
-.sheet-content { flex: 1; overflow-y: auto; padding: 0 22px var(--bottom-margin); }
+/* env() dans le padding du bas : en PWA la fiche descend jusqu'au bord
+   physique (bloc option A+), la rangée d'actions doit rester au-dessus de
+   la barre d'accueil. En navigateur/desktop env() vaut 0 → padding 24px. */
+.sheet-content { flex: 1; overflow-y: auto; padding: 0 22px calc(env(safe-area-inset-bottom, 0px) + 24px); }
 
 /* Fiche lieu — réf. reference-ui/05-fiche-a-essayer.jpeg et
    06-fiche-deja-teste.jpeg : interrupteur de statut + étoiles (si testé),
@@ -631,13 +597,11 @@ h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
 /* ---------------------------------------------------------------------- */
 /* Add/edit place form + Settings (share .form-body layout)               */
 /* ---------------------------------------------------------------------- */
-/* padding-bottom référence --bottom-margin (16px, :root) plutôt qu'un 16px
-   codé en dur ici : même valeur que la barre du bas et la fiche lieu, pour
-   que le bouton "Enregistrer" ait le même dégagement en bas d'écran que
-   les autres endroits qui touchent le bord — demande explicite après le
-   souci causé par env(safe-area-inset-bottom). Aucun changement visuel
-   (16px = 16px), seulement une source unique pour cette valeur. */
-.form-body { flex: 1; overflow-y: auto; padding: 16px 16px var(--bottom-margin); display: flex; flex-direction: column; gap: 14px; }
+/* env() dans le padding du bas : en PWA installée l'écran descend jusqu'au
+   bord physique (bloc "option A+" en fin de fichier) — le bouton
+   "Enregistrer" du formulaire doit rester au-dessus de la barre d'accueil
+   iPhone (env(bottom) = 34px là-bas, 0 en navigateur/desktop → 16px). */
+.form-body { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 14px; }
 .form-label { display: flex; flex-direction: column; gap: 6px; font: 600 14.5px var(--font-sans); color: var(--c-ink); }
 .form-label input[type="text"], .form-label input[type="email"], .form-label textarea {
   border: 1px solid var(--c-border); border-radius: 10px; padding: 12px; font-size: 13.5px;
@@ -758,3 +722,56 @@ h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
 .reader-status-revoked { color: var(--c-danger); }
 .muted { color: var(--c-muted); font-size: 14px; }
 .error-text { color: var(--c-danger); font-size: 14px; }
+
+/* ======================================================================== */
+/* MODE PWA INSTALLÉE (option A+) — la résolution du bug "bande en bas"     */
+/* ======================================================================== */
+/* HISTORIQUE (sessions 11→15, mesures sur l'iPhone réel — voir
+   ui_bottom_bar/report.txt, non commité) : en app installée sur l'écran
+   d'accueil (standalone + status bar translucide), le "layout viewport"
+   iOS — la référence de position:fixed avec bottom/inset — fait écran
+   MOINS barre de statut : 797px sur 844. Tout élément ancré en bottom: 0
+   s'arrête donc 47px AU-DESSUS du bord physique, et cette bande-là était
+   peinte par le fond de <html>, d'où des semaines de "bande d'une couleur
+   différente en bas" impossible à corriger via les éléments eux-mêmes.
+
+   LA MESURE QUI A TOUT DÉBLOQUÉ (panneau de debug S15, sur l'appareil) :
+     100vh = 100lvh = 844px   (le plein écran physique)
+     innerHeight = 100svh = 100dvh = 797px  (le viewport tronqué)
+   → WebKit COMPOSE toute la surface physique ; seul le choix d'unité
+   décide si on l'atteint. Un conteneur fixé en top: 0 avec height: 100vh
+   descend réellement jusqu'au bord (vérifié visuellement : colonnes-test
+   sous la ligne rouge du panneau).
+
+   D'OÙ CE BLOC : pour chaque conteneur plein écran, on remplace l'ancrage
+   par le bas (bottom: 0 / inset: 0, qui bute à 797px) par top + height en
+   vh. bottom: auto est indispensable : sans lui, le bottom: 0 hérité de la
+   règle de base continuerait de contraindre la boîte.
+
+   POURQUOI DANS @media (display-mode: standalone) : cette media query est
+   vraie UNIQUEMENT pour l'app installée. Dans Safari NAVIGATEUR, 100vh a
+   le défaut inverse (il inclut la zone de la barre d'outils rétractable →
+   du contenu passerait derrière) et le bug des 47px n'existe pas ; le
+   navigateur garde donc la géométrie de base, correcte chez lui. Les
+   paddings env(safe-area-inset-bottom) posés sur .bottom-bar,
+   .sheet-content, .form-body, .side-panel-content et #list-container sont
+   eux GLOBAUX : 34px sur iPhone (dégagement barre d'accueil), 0 ailleurs
+   — corrects dans les deux mondes.
+
+   La barre de statut reste en black-translucent (haut immersif conservé,
+   la carte passe sous l'horloge) : c'était tout l'intérêt de l'option A+
+   par rapport au compromis "status bar opaque". */
+@media (display-mode: standalone) {
+  /* Écrans plein écran : connexion, carte/liste, formulaire, réglages. */
+  .top-screen { bottom: auto; height: 100vh; }
+
+  /* Panneau de filtres latéral (et son voile), voile de la fiche lieu,
+     voile de la modale d'édition de tag : tous fixés sur toute la hauteur. */
+  .side-panel { bottom: auto; height: 100vh; }
+  .side-backdrop, .sheet-backdrop, .tag-modal-overlay { bottom: auto; height: 100vh; }
+
+  /* Fiche lieu : ancrée par le HAUT (25vh + 75vh = 100vh = bord physique)
+     puisque bottom: 0 s'arrêterait à 797px. Fermée, translateY(100%) la
+     pousse intégralement sous le bord de l'écran, comme avant. */
+  .bottom-sheet { bottom: auto; top: 25vh; height: 75vh; }
+}

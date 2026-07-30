@@ -40,7 +40,7 @@
   // l'app installée sert encore un vieux bundle en cache — une des causes
   // possibles du "rien ne change malgré les fixes" (l'écran d'accueil iOS
   // peut garder une copie périmée : supprimer l'icône et réinstaller).
-  var VERSION = 'S15-2026-07-30'; // S15 = test d'extension sous le layout viewport (session 15)
+  var VERSION = 'S15b-2026-07-30'; // S15b = option A+ implémentée (écrans en 100vh via @media standalone)
 
   var Z = 2147483000; // au-dessus de tout le reste de l'app
 
@@ -242,14 +242,15 @@
       'apple-mobile-web-app-capable          : ' + metaContent('apple-mobile-web-app-capable'),
       'viewport : ' + metaContent('viewport'),
       '',
-      '--- LA BANDE (zone hors layout viewport, peinte par le canvas) ---',
-      'hauteur : screen(' + screen.height + ') − innerH(' + h + ') = ' + stripHeight + 'px',
-      'couleur ACTUELLE du canvas (fond de <html>) : ' + canvasColor,
-      'déclencheurs du fix : formulaire ouvert=' + formOpen + '  fiche ouverte=' + sheetOpen,
-      '→ attendu : rgb(251, 248, 241) [crème] si formulaire OU fiche ouvert,',
-      '            rgb(243, 238, 227) [beige] sinon (carte/liste/réglages).',
-      '→ si la couleur ne bascule pas alors qu\'un des deux est "true",',
-      '  le sélecteur html:has(...) n\'est pas appliqué sur cet appareil.',
+      '--- OPTION A+ (S15b) : les écrans couvrent-ils le plein écran ? ---',
+      'zone hors layout viewport : screen(' + screen.height + ') − innerH(' + h + ') = ' + stripHeight + 'px',
+      'canvas (fond de <html>, ne devrait plus JAMAIS être visible en bas) : ' + canvasColor,
+      'formulaire ouvert=' + formOpen + '  fiche ouverte=' + sheetOpen,
+      '→ dans FONDS CALCULÉS ci-dessous, un écartBasViewport NÉGATIF (−' + stripHeight + ')',
+      '  est désormais le BON résultat : l\'élément dépasse la limite du layout',
+      '  viewport et descend jusqu\'au bord physique (height:100vh, bloc',
+      '  @media display-mode:standalone en fin de style.css).',
+      '  écartBasViewport=0 en PWA = l\'élément s\'arrête encore à ' + h + 'px → bug.',
       '',
       '--- TEST EXTENSION (session 15) — unités viewport mesurées ---',
       '100vh=' + unitProbes['100vh'].offsetHeight + 'px  100svh=' + unitProbes['100svh'].offsetHeight +
