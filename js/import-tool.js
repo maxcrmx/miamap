@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { initAuth, isAdmin, getCurrentProfile } from './auth.js';
-import { loadTags, tagsByCategory, createTag } from './tags.js';
+import { loadTags, createTag, findTagByLabel, findTagAnyCategory } from './tags.js';
 import { sb } from './supabase-client.js';
 
 const gate = document.getElementById('import-gate');
@@ -84,14 +84,23 @@ async function loadReviewFile() {
   runBtn.disabled = false;
 }
 
-// Finds an existing tag matching (category, label) case-insensitively, or
-// creates it. Re-uses the seeded tags from supabase/schema.sql whenever
-// the label matches, so we don't end up with near-duplicate tags.
+// Finds an existing tag matching (category, label), or creates it. Matching
+// goes through tags.js normalizeLabel() (trim + collapsed spaces + Unicode
+// NFC + case) so a hand-created tag with a stray space or a decomposed
+// accent is still re-used — a plain lowercase comparison here once let a
+// duplicate "Healthy" tag slip through during batch 2 prep. A label that
+// exists in a DIFFERENT category is refused (visible error) instead of
+// silently creating a near-duplicate.
 async function resolveTagId(category, emoji, label) {
-  const existing = tagsByCategory(category).find(
-    (t) => t.label.toLocaleLowerCase('fr') === label.toLocaleLowerCase('fr')
-  );
+  const existing = findTagByLabel(category, label);
   if (existing) return existing.id;
+  const elsewhere = findTagAnyCategory(label);
+  if (elsewhere) {
+    throw new Error(
+      `le tag « ${label} » existe déjà dans la catégorie « ${elsewhere.category} » ` +
+      `(attendu : « ${category} ») — corrige la catégorie du tag en base ou celle du batch, puis relance.`
+    );
+  }
   const created = await createTag(category, emoji, label);
   return created.id;
 }

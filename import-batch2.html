@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  import-batch2.html — Step 2 of the SECOND import batch (31 Berlin
+  places, July 2026). Open this page yourself, in a browser where you're
+  already logged in as admin on index.html (same site, same session).
+
+  Flow (see js/import-batch2.js):
+    1. It loads batch2_parsed_review.json (produced by
+       scripts/parse_batch2.py — check that file or the .csv BEFORE
+       going further).
+    2. "Recherche Google Places" fetches lat/lng, website, phone and
+       google_place_id for each place, in the browser (the API key is
+       domain-restricted). Ambiguous or mismatching results are FLAGGED
+       and excluded from the import instead of guessed at. Download the
+       enriched review JSON/CSV and read it.
+    3. "Lancer l'import" writes the non-flagged places to Supabase —
+       INSERT only, idempotent (skips anything already present, matched
+       by google_place_id or exact name + address), never touches
+       existing rows.
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Import batch 2 (Berlin) → Supabase</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 20px; }
+  #import-gate { color: #666; margin-bottom: 20px; }
+  button { background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  #import-summary { margin: 12px 0; font-size: 14px; color: #444; }
+  #import-export-links a { display: block; font-size: 14px; margin: 4px 0; }
+  #import-log { white-space: pre-wrap; background: #f7f7f7; border-radius: 8px; padding: 12px; font-size: 12px; max-height: 400px; overflow-y: auto; font-family: ui-monospace, monospace; margin-top: 16px; }
+  .hidden { display: none; }
+</style>
+<script>
+  // Même mécanique que index.html : le script Maps charge en async, ce
+  // promise évite que le module démarre la recherche avant qu'il soit prêt.
+  window.googleMapsReady = new Promise((resolve) => { window.__resolveGoogleMapsReady = resolve; });
+  function onGoogleMapsLoaded() { window.__resolveGoogleMapsReady(); }
+</script>
+</head>
+<body>
+  <h1>Import batch 2 (31 lieux Berlin) → Supabase</h1>
+  <p id="import-gate">Vérification de la session...</p>
+
+  <div id="import-panel" class="hidden">
+    <p>1. Vérifie d'abord <code>batch2_parsed_review.csv</code> (ou <code>.json</code>) dans le dossier du projet, puis charge-le.</p>
+    <p>2. Lance la recherche Google Places, télécharge la revue enrichie et relis-la (les lieux ⚠️ ne seront pas importés).</p>
+    <p>3. Lance l'import — INSERT uniquement, relançable sans doublons.</p>
+    <button id="import-load-btn">Charger batch2_parsed_review.json</button>
+    <button id="import-lookup-btn" disabled>Recherche Google Places</button>
+    <button id="import-run-btn" disabled>Lancer l'import</button>
+    <div id="import-summary"></div>
+    <div id="import-export-links" class="hidden"></div>
+    <pre id="import-log"></pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY&libraries=places&callback=onGoogleMapsLoaded"></script>
+  <script type="module" src="js/import-batch2.js"></script>
+</body>
+</html>

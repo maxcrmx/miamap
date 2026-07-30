@@ -38,6 +38,35 @@ export function tagById(id) {
   return (tagsCache || []).find((t) => t.id === id);
 }
 
+// ----------------------------------------------------------------------------
+// Comparaison de libellés saisis à la main (imports, création inline).
+// ----------------------------------------------------------------------------
+// Un simple toLowerCase() ne suffit pas : un espace de début/fin, un espace
+// double, ou un accent en forme Unicode décomposée ("e" + combinant au lieu
+// de "é") produisent des libellés visuellement identiques mais différents
+// pour ===. C'est exactement ce qui a fait créer un doublon du tag "Healthy"
+// lors de la préparation du batch 2 — d'où cette normalisation unique,
+// partagée par tous les outils d'import.
+export function normalizeLabel(label) {
+  return label.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+}
+
+// Tag existant portant ce libellé (normalisé) dans CETTE catégorie, ou null.
+export function findTagByLabel(category, label) {
+  const wanted = normalizeLabel(label);
+  return (tagsCache || []).find(
+    (t) => t.category === category && normalizeLabel(t.label) === wanted
+  ) || null;
+}
+
+// Même recherche, toutes catégories confondues. Sert aux imports à détecter
+// "ce libellé existe déjà, mais ailleurs" — cas à signaler à l'admin plutôt
+// qu'à résoudre en créant silencieusement un quasi-doublon.
+export function findTagAnyCategory(label) {
+  const wanted = normalizeLabel(label);
+  return (tagsCache || []).find((t) => normalizeLabel(t.label) === wanted) || null;
+}
+
 // Creates a new custom tag (admin-only — enforced server-side by RLS).
 // `label` should be the plain text name, without the emoji prefix.
 export async function createTag(category, emoji, label) {

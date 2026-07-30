@@ -8,6 +8,12 @@ mapstr.geojson
 mapstr_parsed_review.json
 mapstr_parsed_review.csv
 
+# Same reason, for the second import batch (31 Berlin places, see
+# scripts/parse_batch2.py and import-batch2.html) — also personal saved
+# places, also only needed locally to review before importing.
+batch2_parsed_review.json
+batch2_parsed_review.csv
+
 # Captures de l'app Mapstr servant de référence visuelle pour refaire l'UI
 # (voir SPEC.md). Gardées en local uniquement : ce repo est public, donc tout
 # ce qui est commité ici est téléchargeable par n'importe qui — et ces

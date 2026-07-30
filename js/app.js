@@ -11,7 +11,7 @@ import { DEFAULT_MAP_CENTER } from './config.js';
 import { initAuth, onAuthChange, sendMagicLink, verifyEmailCode, readAuthErrorFromUrl, getLastProfileIssue, signOut, isAdmin, getCurrentProfile } from './auth.js';
 import { loadTags } from './tags.js';
 import { fetchPlaces } from './db.js';
-import { initMap, renderMarkers, setOnPinClick, panTo } from './map.js';
+import { initMap, renderMarkers, setOnPinClick, panTo, setUserLocationMarker } from './map.js';
 import { renderFilterPanel, applyFilters, setSearchText } from './filters.js';
 import { renderList, setUserLocation, setSort } from './list-view.js';
 import { initPlaceDetail, openPlaceDetail } from './place-detail.js';
@@ -256,15 +256,34 @@ function applyAdminVisibility() {
   });
 }
 
+// `granted` distingue "vraie position GPS obtenue" de "repli sur Paris" —
+// les deux résolvent avec un `center` utilisable pour centrer la carte, mais
+// seul le premier cas doit déclencher le point bleu (startUserLocationWatch
+// ci-dessous) : la géolocalisation refusée/indisponible doit garder le
+// centrage par défaut SANS jamais afficher de point bleu.
 function locateUser() {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(DEFAULT_MAP_CENTER);
+    if (!navigator.geolocation) return resolve({ center: DEFAULT_MAP_CENTER, granted: false });
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(DEFAULT_MAP_CENTER),
+      (pos) => resolve({ center: { lat: pos.coords.latitude, lng: pos.coords.longitude }, granted: true }),
+      () => resolve({ center: DEFAULT_MAP_CENTER, granted: false }),
       { timeout: 5000 }
     );
   });
+}
+
+// Point bleu façon Google Maps (voir map.js setUserLocationMarker) : suit la
+// position réelle en continu tant que l'app est ouverte, via watchPosition
+// plutôt qu'un seul getCurrentPosition. N'est appelée qu'après un premier
+// succès de géolocalisation (voir bootMainApp) — jamais si l'utilisateur a
+// refusé ou si l'appareil n'a pas de géolocalisation.
+function startUserLocationWatch() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(
+    (pos) => setUserLocationMarker({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    () => {}, // une erreur ponctuelle (GPS perdu un instant) ne doit pas faire disparaître le point : on garde sa dernière position connue
+    { enableHighAccuracy: false, maximumAge: 10000, timeout: 10000 }
+  );
 }
 
 // ----------------------------------------------------------------------------
@@ -284,10 +303,14 @@ async function bootMainApp() {
   applyAdminVisibility();
   initMainScreenChrome();
 
-  const center = await locateUser();
+  const { center, granted } = await locateUser();
   setUserLocation(center);
   initMap(document.getElementById('map-container'), center);
   panTo(center);
+  if (granted) {
+    setUserLocationMarker(center); // évite d'attendre le premier tick de watchPosition
+    startUserLocationWatch();
+  }
 
   await loadTags();
   drawFilterPanel();

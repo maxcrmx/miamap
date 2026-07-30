@@ -51,6 +51,13 @@ const BADGE_TO_TRY = '#FFC72C';
 
 const CIRCLE_STROKE_WIDTH = 1.5;
 
+// Marqueur de position GPS — bleu Google Maps classique, halo pulsant. Taille
+// fixe en pixels écran (comme le vrai point bleu de Google Maps) : il ne
+// grossit pas avec le zoom, contrairement à un google.maps.Circle en rayon
+// géographique.
+const USER_DOT_BOX = 64;
+const USER_DOT_COLOR = '#4285F4';
+
 // Rayon du cercle dans une boîte de `size`, en laissant la place au trait.
 function circleRadius(size) {
   return size / 2 - CIRCLE_STROKE_WIDTH / 2 - 1;
@@ -122,6 +129,52 @@ function buildClusterSvg(count) {
       <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="sans-serif" fill="#000">${count}</text>
     </svg>
   `);
+}
+
+// Cercle central fixe + anneau qui grandit en s'estompant, en boucle — animé
+// en SMIL (<animate>) plutôt qu'en CSS @keyframes : une animation CSS
+// définie dans le <style> d'un SVG chargé via une <img>/icône de marker
+// (le SVG n'est jamais inséré dans le DOM, seulement référencé en data URL)
+// ne se déclenche pas de façon fiable selon les navigateurs, alors que SMIL
+// tourne quel que soit le contexte de rendu de l'image.
+function buildUserLocationSvg() {
+  const c = USER_DOT_BOX / 2;
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${USER_DOT_BOX}" height="${USER_DOT_BOX}" viewBox="0 0 ${USER_DOT_BOX} ${USER_DOT_BOX}">
+      <circle cx="${c}" cy="${c}" r="10" fill="${USER_DOT_COLOR}" opacity="0.35">
+        <animate attributeName="r" values="10;26;10" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.35;0;0.35" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="${c}" cy="${c}" r="8" fill="${USER_DOT_COLOR}" stroke="#fff" stroke-width="2.5" />
+    </svg>
+  `);
+}
+
+let userLocationMarker = null;
+
+// Point bleu façon Google Maps à la position GPS de l'utilisateur. Distinct
+// des pins de lieux à tous égards : jamais ajouté à `markers`/au clusterer
+// (renderMarkers() ne le touche jamais et ne le voit jamais), non cliquable,
+// zIndex bas pour rester sous les pins. Recréé une seule fois puis
+// repositionné ensuite — pas de flicker à chaque mise à jour GPS
+// (js/app.js l'appelle en continu depuis un watchPosition).
+export function setUserLocationMarker(position) {
+  if (!map) return;
+  if (!userLocationMarker) {
+    userLocationMarker = new google.maps.Marker({
+      position,
+      map,
+      icon: {
+        url: buildUserLocationSvg(),
+        scaledSize: new google.maps.Size(USER_DOT_BOX, USER_DOT_BOX),
+        anchor: new google.maps.Point(USER_DOT_BOX / 2, USER_DOT_BOX / 2),
+      },
+      clickable: false,
+      zIndex: 1,
+    });
+  } else {
+    userLocationMarker.setPosition(position);
+  }
 }
 
 export function initMap(container, center) {

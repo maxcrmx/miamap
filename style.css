@@ -32,6 +32,16 @@
   --c-danger:     #A6493B; /* suppression / déconnexion */
   --font-serif: 'Lora', Georgia, serif;
   --font-sans: 'Work Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Pilules de tag — une seule source de vérité pour le panneau filtres, le
+     formulaire d'ajout/édition, la fiche lieu ET la liste (.tag-pill et
+     .list-row-tag partagent ces valeurs), sinon chaque écran dérive sa
+     propre épaisseur au fil des retouches et les pilules finissent par ne
+     plus se ressembler d'un écran à l'autre. */
+  --pill-padding-y: 6px;
+  --pill-padding-x: 10px;
+  --pill-font-size: 12.5px;
+  --pill-radius: 8px;
+  --pill-gap: 6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -221,9 +231,10 @@ html, body {
 }
 .list-row-tag-scroll::-webkit-scrollbar { display: none; }
 .list-row-tag {
-  flex-shrink: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 10px; border-radius: 8px; background: var(--c-surface-alt);
-  border: 1px solid var(--c-tag-border); font: 500 12px var(--font-sans); color: var(--c-tag-text);
+  flex-shrink: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--pill-gap);
+  padding: var(--pill-padding-y) var(--pill-padding-x); border-radius: var(--pill-radius);
+  background: var(--c-surface-alt); border: 1px solid var(--c-tag-border);
+  font: 500 var(--pill-font-size) var(--font-sans); color: var(--c-tag-text);
 }
 
 /* Barre du bas : "+" centré qui déborde vers le haut, bouton réglages à
@@ -289,9 +300,10 @@ html, body {
 /* dépend plus de la catégorie du tag — direction "Carnet" du redesign).  */
 /* ---------------------------------------------------------------------- */
 .tag-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--c-tag-border); border-radius: 9px; padding: 9px 13px;
-  font: 500 13.5px var(--font-sans); cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--pill-gap);
+  border: 1px solid var(--c-tag-border); border-radius: var(--pill-radius);
+  padding: var(--pill-padding-y) var(--pill-padding-x);
+  font: 500 var(--pill-font-size) var(--font-sans); cursor: pointer;
   background: var(--c-surface-alt); color: var(--c-tag-text); white-space: nowrap;
 }
 .tag-pill .pill-x {
@@ -513,7 +525,15 @@ h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
 .address-suggestion:active { background: var(--c-tag-border); }
 
 /* --- Formulaire ajout/édition — réf. 03-ajout-lieu / 04-fiche-edition --- */
-.form-topbar { display: flex; align-items: center; gap: 12px; padding: 12px; }
+/* .form-topbar est posé EN PLUS de .topbar sur le même élément (voir
+   index.html : class="topbar form-topbar"). Les deux règles ont la même
+   spécificité (une classe), donc celle déclarée en dernier dans la feuille
+   — ici — l'emporte : sans le safe-area-inset-top repris ci-dessous, ce
+   padding écrasait purement et simplement celui de .topbar et le contenu
+   du formulaire d'ajout passait sous l'encoche/la barre de statut, alors
+   que .topbar seul (utilisé par l'écran Réglages) n'a jamais eu ce
+   problème. */
+.form-topbar { display: flex; align-items: center; gap: 12px; padding: calc(env(safe-area-inset-top) + 12px) 12px 12px; }
 .form-topbar h2 { flex: 1; text-align: center; font: 600 18px var(--font-serif); color: var(--c-ink); }
 .topbar-spacer { width: 44px; flex: none; } /* équilibre le ✕ à gauche pour centrer le titre */
 
