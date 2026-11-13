@@ -114,28 +114,36 @@ html, body {
 .auth-icon { font-size: 52px; }
 .auth-box h1 { font: 600 30px var(--font-serif); color: var(--c-ink); }
 .auth-box p { color: var(--c-muted); font-size: 15px; line-height: 1.5; }
-#auth-form { display: flex; flex-direction: column; gap: 10px; }
-#auth-form input {
-  border: 1px solid var(--c-border); border-radius: 12px; padding: 16px 18px; font-size: 15px;
-  outline: none; background: var(--c-surface); font-family: inherit;
+/* Écran de code façon iPhone : 4 points + pavé numérique 3 colonnes.
+   Les points se remplissent à chaque chiffre (classe .filled posée par
+   js/app.js) ; .shake les fait trembler quand le code est faux. */
+.pin-dots { display: flex; justify-content: center; gap: 18px; margin: 4px 0 0; }
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1.5px solid var(--c-ink); background: transparent;
+  transition: background 0.12s ease;
 }
-#auth-form button {
-  background: var(--c-ink); color: #fff; border: none; border-radius: 12px;
-  padding: 17px; font-size: 15.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+.pin-dot.filled { background: var(--c-ink); }
+.pin-dots.shake { animation: pin-shake 0.4s ease; }
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
 }
-.link-btn {
-  background: none; border: none; color: var(--c-ink-soft); font-size: 13.5px;
-  text-decoration: underline; cursor: pointer; padding: 4px; font-family: inherit;
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 72px); gap: 16px 24px;
+  justify-content: center; margin-top: 8px;
 }
-#auth-code-form { display: flex; flex-direction: column; gap: 10px; }
-#auth-code-form input {
-  border: 1px solid var(--c-border); border-radius: 12px; padding: 16px 18px; font-size: 15px;
-  outline: none; text-align: center; letter-spacing: 2px; background: var(--c-surface); font-family: inherit;
+.pin-key {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--c-surface); border: 1px solid var(--c-border); color: var(--c-ink);
+  font: 500 28px var(--font-sans); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-#auth-code-form button {
-  background: var(--c-ink); color: #fff; border: none; border-radius: 12px;
-  padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
-}
+.pin-key:active { background: var(--c-border); }
+.pin-key-erase { background: transparent; border-color: transparent; font-size: 24px; }
+/* Pendant un blocage (trop de codes faux), le pavé est grisé et inactif. */
+.pin-pad.locked { opacity: 0.35; pointer-events: none; }
 .status-text { font-size: 13px; color: var(--c-muted); min-height: 16px; }
 
 /* ---------------------------------------------------------------------- */
@@ -729,20 +737,6 @@ h4 { font: 600 15px var(--font-sans); color: var(--c-ink); margin-bottom: 6px; }
 /* Settings screen                                                        */
 /* ---------------------------------------------------------------------- */
 .form-body h3 { font: 600 16px var(--font-serif); color: var(--c-ink); }
-.invite-form { display: flex; gap: 8px; }
-.invite-form input {
-  flex: 1; border: 1px solid var(--c-border); border-radius: 10px; padding: 13px 14px;
-  font-size: 14px; font-family: inherit; background: var(--c-white); color: var(--c-ink);
-}
-.reader-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 0; border-bottom: 1px solid var(--c-border);
-}
-.reader-info { display: flex; flex-direction: column; gap: 2px; }
-.reader-email { font-size: 14px; font-weight: 500; color: var(--c-ink); }
-.reader-status { font-size: 12px; }
-.reader-status-active { color: var(--c-sapin); }
-.reader-status-revoked { color: var(--c-danger); }
 .muted { color: var(--c-muted); font-size: 14px; }
 .error-text { color: var(--c-danger); font-size: 14px; }
 

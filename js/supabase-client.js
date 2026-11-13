@@ -16,11 +16,12 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 
 export const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Persist the session in localStorage so a reload / app reopen doesn't
-    // require clicking the magic link again (SPEC.md: "Skipped
-    // automatically on future visits if the session is still valid").
+    // La session est gardée dans localStorage : c'est ce qui fait que le
+    // code à 4 chiffres n'est demandé qu'une seule fois par appareil (voir
+    // js/auth.js). autoRefreshToken la prolonge tant que l'app est utilisée.
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true, // reads the magic-link token out of the URL on redirect back
+    // Plus de magic link : aucun jeton de connexion n'arrive par l'URL.
+    detectSessionInUrl: false,
   },
 });

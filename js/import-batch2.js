@@ -45,7 +45,7 @@ async function checkAdmin() {
   if (!profile || !isAdmin()) {
     gate.textContent = profile
       ? 'Connecté, mais pas en tant qu\'admin — cet outil est réservé à l\'admin.'
-      : 'Connecte-toi depuis index.html (lien magique) avant d\'ouvrir cet outil.';
+      : 'Connecte-toi depuis index.html (code à 4 chiffres) avant d\'ouvrir cet outil.';
     return false;
   }
   gate.textContent = `Connecté en tant qu'admin (${getCurrentProfile().email}).`;

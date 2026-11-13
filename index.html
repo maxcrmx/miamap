@@ -48,28 +48,33 @@
   <div class="auth-box">
     <div class="auth-icon">📍</div>
     <h1>Miamap by MC</h1>
-    <p>Connecte-toi avec ton email pour accéder à la carte.</p>
-    <form id="auth-form">
-      <input type="email" id="auth-email" placeholder="ton@email.com" required autocomplete="email" />
-      <button type="submit">Recevoir un lien de connexion</button>
-    </form>
-    <p id="auth-status" class="status-text"></p>
+    <p>Saisis ton code</p>
 
     <!--
-      Fallback if the magic link itself fails (e.g. a mail client's link
-      scanner "pre-clicks" it, consuming the one-time token before you do —
-      a common real-world failure mode). Supabase's OTP email already
-      contains this 6-digit code alongside the link, so this isn't a
-      separate/custom auth system — just another way to redeem the same
-      one-time code Supabase already sent. Always visible (not just after a
-      successful send) since it's also the only way in if sending itself is
-      currently rate-limited but an earlier email already arrived.
+      Écran de code façon iPhone : 4 points qui se remplissent, puis un pavé
+      numérique. Le code est envoyé automatiquement dès le 4e chiffre tapé
+      (voir initPinScreen dans js/app.js). Les touches du clavier physique
+      marchent aussi sur ordinateur.
     -->
-    <button type="button" id="auth-code-toggle" class="link-btn">Saisir le code reçu par email</button>
-    <form id="auth-code-form" class="hidden">
-      <input type="text" id="auth-code-input" placeholder="Code reçu par email" inputmode="numeric" autocomplete="one-time-code" />
-      <button type="submit">Valider le code</button>
-    </form>
+    <div id="pin-dots" class="pin-dots" aria-hidden="true">
+      <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <p id="auth-status" class="status-text" role="status"></p>
+
+    <div id="pin-pad" class="pin-pad">
+      <button type="button" class="pin-key" data-digit="1">1</button>
+      <button type="button" class="pin-key" data-digit="2">2</button>
+      <button type="button" class="pin-key" data-digit="3">3</button>
+      <button type="button" class="pin-key" data-digit="4">4</button>
+      <button type="button" class="pin-key" data-digit="5">5</button>
+      <button type="button" class="pin-key" data-digit="6">6</button>
+      <button type="button" class="pin-key" data-digit="7">7</button>
+      <button type="button" class="pin-key" data-digit="8">8</button>
+      <button type="button" class="pin-key" data-digit="9">9</button>
+      <span class="pin-key-spacer"></span>
+      <button type="button" class="pin-key" data-digit="0">0</button>
+      <button type="button" class="pin-key pin-key-erase" id="pin-erase" aria-label="Effacer">⌫</button>
+    </div>
   </div>
 </div>
 
@@ -251,17 +256,8 @@
     <h2>Réglages</h2>
   </div>
   <div class="form-body">
+    <!-- Se déconnecter = le code sera redemandé à la prochaine ouverture. -->
     <button id="logout-btn" class="btn-danger">Se déconnecter</button>
-
-    <h3>Inviter un lecteur</h3>
-    <form id="settings-invite-form" class="invite-form">
-      <input type="email" id="settings-invite-email" placeholder="email@exemple.com" required />
-      <button type="submit" class="btn-primary">Inviter</button>
-    </form>
-    <p id="settings-invite-status" class="status-text"></p>
-
-    <h3>Lecteurs</h3>
-    <div id="settings-reader-list"></div>
   </div>
 </div>
 

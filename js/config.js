@@ -15,6 +15,23 @@
 export const SUPABASE_URL = 'https://xkgnijhmanupvoszxszi.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_sbqVRvbPpW2DFsNlYJlspw_mNYTH5YZ';
 
+// ----------------------------------------------------------------------------
+// Connexion par code à 4 chiffres (remplace le magic link, voir js/auth.js).
+// ----------------------------------------------------------------------------
+// L'app n'a qu'un seul compte : celui de l'admin. L'écran de connexion ne
+// demande donc que le code ; l'adresse e-mail du compte est fixée ici.
+// (Elle figure déjà en clair dans supabase/schema.sql, rien de nouveau n'est
+// rendu public.)
+export const ADMIN_EMAIL = 'cremieux.maxime@gmail.com';
+
+// Supabase refuse les mots de passe de moins de 6 caractères. Le mot de passe
+// réel du compte est donc ce préfixe suivi du code à 4 chiffres : avec le
+// code 1234, le mot de passe enregistré dans Supabase est « miamap-1234 ».
+// Le code lui-même n'est écrit nulle part dans ce repo (public) : il n'existe
+// que dans Supabase, posé à la main via supabase/set_pin_password.sql.
+export const PIN_PASSWORD_PREFIX = 'miamap-';
+export const PIN_LENGTH = 4;
+
 // Reused from the original POC (index.html) — the Google Maps JS API key.
 export const GOOGLE_MAPS_KEY = 'AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY';
 

@@ -23,17 +23,18 @@ This is a personal replacement for Mapstr (a "save your favorite places" app), w
 
 ## Roles & Auth
 
-Two roles only, for now:
+> **Changed on 2026-11-13** (owner decision): the Magic Link login and the reader role were removed. The magic link kept failing, and the app has a single user. The previous rules are replaced by the ones below.
 
-- **Admin** (the app owner): full read + write (add/edit/delete places) + can manage readers (invite/revoke) via a Settings screen.
-- **Reader**: read-only access to everything except Settings, which is hidden/blocked for them.
+**Single user:** only the **Admin** (the app owner) uses the app: full read + write (add/edit/delete places). The reader role, the reader invites and the reader list in Settings were removed; existing reader profiles are deactivated (`supabase/set_pin_password.sql`). The `role` column and the RLS policies are unchanged, so readers could be brought back later.
 
-**Auth mechanism:** Supabase Magic Link (email-based passwordless login) for both roles. No custom password/code system.
+**Auth mechanism:** a 4-digit code, iPhone-style keypad.
 
-- A `profiles` table (linked to Supabase `auth.users`) stores a `role` column (`admin` / `reader`). The admin's role is set based on a known admin email at signup/first login — do not hardcode identity checks by email string throughout the app; check `role` via RLS policies instead.
-- Revoking a reader must take effect immediately (their access is checked against `profiles`/an active-status flag on every request, not cached client-side).
-- A magic link is tied to the email it was sent to — no separate custom "single-use code" system needed, Supabase's own magic link mechanism covers this requirement (one link per reader invite, sent by the admin from Settings).
-- RLS should be enabled on all tables. Reads and writes must be enforced server-side (policies), never trusted from client-side checks alone.
+- The code is the Supabase password of the admin account, prefixed with `miamap-` because Supabase requires at least 6 characters (`PIN_PASSWORD_PREFIX` in `js/config.js`). Login = `signInWithPassword` with the admin email (`ADMIN_EMAIL` in `js/config.js`), so the code is checked server-side by Supabase.
+- The code itself is never written in the repo (public): it only exists in Supabase, set manually with `supabase/set_pin_password.sql`.
+- Asked once per device: the session is persisted, until "Se déconnecter" in Settings.
+- After 5 wrong codes in a row: 30 s wait, then 1 min, then 5 min for each further error (client-side counter in localStorage, on top of Supabase's own server-side rate limit).
+- The data is not considered sensitive by the owner; this level of protection was chosen knowingly.
+- RLS stays enabled on all tables. Reads and writes are enforced server-side (policies), never trusted from client-side checks alone.
 
 ---
 
@@ -79,7 +80,7 @@ Each place has:
 
 ## Screens & UX flow
 
-1. **Auth screen**: Magic Link email input. Skipped automatically on future visits if the session is still valid.
+1. **Auth screen**: 4-digit code, iPhone-style (4 dots + numeric keypad, auto-submit on the 4th digit, shake on a wrong code). Skipped automatically on future visits if the session is still valid.
 2. **Map screen** (main screen):
    - Google Map centered on the user's geolocation on open; falls back to Paris center if geolocation is denied.
    - All matching pins shown (filtered by active filters + search).
@@ -97,7 +98,7 @@ Each place has:
    - Tag selection per category: click to add a tag; supports creating a new tag (emoji + name) inline within a category.
    - The 5 review fields (top / bof / remarks / rating / comment).
    - Save button → writes to Supabase, place appears on the map immediately.
-5. **Settings screen** (admin only, gear icon): list of current readers with a revoke button next to each; a field to invite a new reader by email (triggers a Supabase magic link to that email, assigning them the `reader` role on first login).
+5. **Settings screen** (admin only, gear icon): a "Se déconnecter" button (the code is then asked again). Reader management was removed on 2026-11-13.
 
 ---
 
@@ -122,7 +123,7 @@ Each place has:
 
 1. Supabase schema: `profiles`, `places`, `place_tags` (or similar normalized structure), tag category/tag tables. Enable RLS on all.
 2. RLS policies: reads open to any authenticated user (admin + readers); writes restricted to the admin's user id (via `profiles.role = 'admin'`); reader invite/revoke restricted to admin.
-3. Auth flow: Magic Link wiring, session persistence, role detection.
+3. Auth flow: 4-digit code login (originally Magic Link, replaced on 2026-11-13), session persistence, role detection.
 4. Map screen + filters + list view, wired to Supabase reads.
 5. Add/Edit/Delete flow, wired to Supabase writes.
 6. Settings screen (invite/revoke readers).

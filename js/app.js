@@ -1,5 +1,5 @@
 // ============================================================================
-// app.js — main entry point: screen routing, auth gate, and wiring together
+// app.js — main entry point: screen routing, écran de code (connexion), and wiring together
 // every other module (map, filters, list view, place detail/form, settings).
 //
 // This file is intentionally the only one that touches the top-level
@@ -7,8 +7,8 @@
 // own sub-screen (sheet, form, settings, filter panel).
 // ============================================================================
 
-import { DEFAULT_MAP_CENTER } from './config.js';
-import { initAuth, onAuthChange, sendMagicLink, verifyEmailCode, readAuthErrorFromUrl, getLastProfileIssue, signOut, isAdmin, getCurrentProfile } from './auth.js';
+import { DEFAULT_MAP_CENTER, PIN_LENGTH } from './config.js';
+import { initAuth, onAuthChange, signInWithPin, getPinLockRemainingSeconds, getLastProfileIssue, signOut, isAdmin } from './auth.js';
 import { loadTags } from './tags.js';
 import { fetchPlaces } from './db.js';
 import { initMap, renderMarkers, setOnPinClick, panTo, setUserLocationMarker } from './map.js';
@@ -16,7 +16,7 @@ import { renderFilterPanel, applyFilters, setSearchText } from './filters.js';
 import { renderList, setUserLocation, setSort } from './list-view.js';
 import { initPlaceDetail, openPlaceDetail } from './place-detail.js';
 import { initPlaceForm, openPlaceForm, closePlaceForm } from './place-form.js';
-import { initSettings, openSettings, closeSettings } from './settings.js';
+import { openSettings, closeSettings } from './settings.js';
 
 let allPlaces = [];
 let currentView = 'map'; // 'map' | 'list'
@@ -30,101 +30,106 @@ function showScreen(id) {
 }
 
 // ----------------------------------------------------------------------------
-// Auth screen
+// Écran de code (connexion)
 // ----------------------------------------------------------------------------
-function initAuthScreen() {
-  const form = document.getElementById('auth-form');
+// Pavé numérique façon iPhone : chaque chiffre tapé remplit un point ; au 4e,
+// le code part automatiquement vers Supabase (signInWithPin, js/auth.js).
+// Code bon → onAuthStateChange affiche la carte tout seul (voir main()).
+// Code faux → les points tremblent et se vident.
+function initPinScreen() {
   const status = document.getElementById('auth-status');
-  const codeToggle = document.getElementById('auth-code-toggle');
-  const codeForm = document.getElementById('auth-code-form');
+  const dotsRow = document.getElementById('pin-dots');
+  const dots = dotsRow.querySelectorAll('.pin-dot');
+  const pad = document.getElementById('pin-pad');
 
-  // Surface a failed magic-link redirect instead of silently falling back
-  // to an empty login screen — see readAuthErrorFromUrl() in auth.js for
-  // why this happens (most commonly: a mail client's link scanner
-  // consuming the one-time token before the real click).
-  // This error comes from Supabase's /verify endpoint (server-side), not
-  // from our code — it means the token in the link was already rejected
-  // before the page loaded. In practice that's almost always a *superseded*
-  // link: Supabase keeps only ONE active magic-link token per user, so
-  // every time a new link is requested, all previously emailed links die.
-  // Hence the explicit "most recent email" wording.
-  const emailInput = document.getElementById('auth-email');
+  let pin = '';          // chiffres tapés jusqu'ici
+  let busy = false;      // vrai pendant la vérification : on ignore les frappes
+  let lockTimer = null;  // minuterie qui rafraîchit le compte à rebours du blocage
 
-  // Restore the last address a code/link was sent to. Without this, a failed
-  // magic-link redirect reloads the page with an EMPTY email field, and
-  // verifying a code then fails — GoTrue needs the exact address the code was
-  // issued for, and returns the same generic "Token has expired or is
-  // invalid" error when the address doesn't match, which is indistinguishable
-  // from a genuinely bad code.
-  const REMEMBERED_EMAIL_KEY = 'miamap.lastAuthEmail';
-  emailInput.value = localStorage.getItem(REMEMBERED_EMAIL_KEY) || '';
-
-  const authError = readAuthErrorFromUrl();
-  if (authError) {
-    status.textContent =
-      `Lien refusé par Supabase (${authError}). ` +
-      `Chaque nouvelle demande annule les liens précédents : n'ouvre que le DERNIER email reçu. ` +
-      `Plus fiable : demande un nouvel email et saisis son code ci-dessous SANS cliquer sur le lien ` +
-      `(le lien et le code sont le même jeton à usage unique — cliquer le lien annule le code).`;
+  function renderDots() {
+    dots.forEach((dot, i) => dot.classList.toggle('filled', i < pin.length));
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = emailInput.value.trim();
-    if (!email) return;
-    status.textContent = 'Envoi du lien...';
-    const { error } = await sendMagicLink(email);
-    if (error) {
-      status.textContent = 'Erreur : ' + error.message;
-      return;
+  // Affiche « Réessaie dans X s » tant qu'un blocage est en cours, puis
+  // réactive le pavé. Rappelée chaque seconde par setInterval.
+  function refreshLock() {
+    const remaining = getPinLockRemainingSeconds();
+    const locked = remaining > 0;
+    pad.classList.toggle('locked', locked);
+    if (locked) {
+      const label = remaining >= 60 ? `${Math.ceil(remaining / 60)} min` : `${remaining} s`;
+      status.textContent = `Trop d'essais. Réessaie dans ${label}.`;
+      if (!lockTimer) lockTimer = setInterval(refreshLock, 1000);
+    } else if (lockTimer) {
+      clearInterval(lockTimer);
+      lockTimer = null;
+      status.textContent = '';
     }
-    localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-    status.textContent =
-      `✓ Email envoyé à ${email}. Pour te connecter, saisis le code de cet email ci-dessous ` +
-      `plutôt que de cliquer sur le lien.`;
-    codeForm.classList.remove('hidden');
+    return locked;
+  }
+
+  // Petite secousse des points en cas de code faux (animation CSS
+  // .pin-dots.shake). On retire puis remet la classe pour pouvoir la rejouer.
+  function shake() {
+    dotsRow.classList.remove('shake');
+    void dotsRow.offsetWidth; // force le navigateur à « oublier » l'animation précédente
+    dotsRow.classList.add('shake');
+  }
+
+  async function submit() {
+    busy = true;
+    status.textContent = 'Vérification...';
+    const result = await signInWithPin(pin);
+    busy = false;
+    if (result.ok) {
+      status.textContent = '';
+      return; // la carte s'affiche via onAuthStateChange
+    }
+    pin = '';
+    renderDots();
+    if (result.reason === 'wrong-pin') {
+      shake();
+      status.textContent = 'Code incorrect.';
+      refreshLock(); // affiche le compte à rebours si ce code faux déclenche un blocage
+    } else if (result.reason === 'locked') {
+      refreshLock();
+    } else {
+      // Réseau coupé, projet Supabase en pause, limite de tentatives côté
+      // serveur... : on affiche le message brut pour savoir quoi faire.
+      status.textContent = 'Connexion impossible : ' + result.message;
+    }
+  }
+
+  function pressDigit(digit) {
+    if (busy || refreshLock() || pin.length >= PIN_LENGTH) return;
+    if (pin.length === 0) status.textContent = ''; // efface « Code incorrect » au 1er chiffre
+    pin += digit;
+    renderDots();
+    if (pin.length === PIN_LENGTH) submit();
+  }
+
+  function erase() {
+    if (busy) return;
+    pin = pin.slice(0, -1);
+    renderDots();
+  }
+
+  pad.addEventListener('click', (e) => {
+    const key = e.target.closest('.pin-key');
+    if (!key) return;
+    if (key.id === 'pin-erase') erase();
+    else pressDigit(key.dataset.digit);
   });
 
-  codeToggle.addEventListener('click', () => {
-    codeForm.classList.toggle('hidden');
+  // Clavier physique (ordinateur) : chiffres et touche Retour arrière, mais
+  // seulement quand l'écran de code est celui affiché.
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('auth-screen').classList.contains('active')) return;
+    if (/^[0-9]$/.test(e.key)) pressDigit(e.key);
+    else if (e.key === 'Backspace') erase();
   });
 
-  codeForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    // The code is tied to the address it was sent to — read it from the same
-    // input above (now pre-filled from localStorage, see REMEMBERED_EMAIL_KEY).
-    const email = emailInput.value.trim();
-    const code = document.getElementById('auth-code-input').value.trim();
-    if (!email) {
-      status.textContent = 'Renseigne d\'abord ton email ci-dessus (celui auquel le code a été envoyé).';
-      return;
-    }
-    if (!code) return;
-
-    // Disable while in flight: a second submit would resend the SAME code,
-    // which Supabase has already consumed, producing a misleading
-    // "otp_expired" that hides the fact the first call actually succeeded.
-    const submitBtn = codeForm.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    status.textContent = 'Vérification du code...';
-    const { error } = await verifyEmailCode(email, code);
-    submitBtn.disabled = false;
-    if (error) {
-      // Include the error code/status: GoTrue reuses the same human message
-      // for several distinct causes, so these extra fields are what actually
-      // tell them apart when debugging.
-      const detail = [error.code, error.status].filter(Boolean).join(' / ');
-      status.textContent =
-        `Code refusé : ${error.message}${detail ? ` [${detail}]` : ''}. ` +
-        `Vérifie que l'email ci-dessus est bien celui du destinataire, que le code vient du DERNIER ` +
-        `email reçu, et que tu n'as pas déjà cliqué le lien de ce même email.`;
-      console.error('verifyOtp a échoué :', error);
-      return;
-    }
-    status.textContent = '';
-    // On success, onAuthStateChange (registered in main()) picks up the new
-    // session and switches screens automatically — nothing else to do here.
-  });
+  refreshLock(); // un blocage peut encore courir depuis la dernière visite
 }
 
 // ----------------------------------------------------------------------------
@@ -259,7 +264,6 @@ function initMainScreenChrome() {
   });
 
   initPlaceForm({ onSaveComplete: () => refreshPlaces() });
-  initSettings();
 }
 
 function applyAdminVisibility() {
@@ -342,19 +346,18 @@ async function bootMainApp() {
 
 async function handleAuthed(profile) {
   if (!profile) {
-    // A null profile does NOT necessarily mean "not logged in". The magic
-    // link / code can succeed while the profiles lookup still fails — most
-    // commonly because `profiles.user_id` was never linked to the auth user.
-    // Previously this path just showed the login screen with no message,
-    // which looked identical to "nothing happened" while the one-time code
-    // had in fact been consumed. Always say what actually went wrong.
+    // A null profile does NOT necessarily mean "not logged in". Le code peut
+    // être accepté par Supabase alors que la lecture du profil échoue — le
+    // plus souvent parce que `profiles.user_id` n'est pas relié au compte.
+    // On dit toujours ce qui s'est réellement passé plutôt que de revenir
+    // sans un mot à l'écran de code.
     const issue = getLastProfileIssue();
     const status = document.getElementById('auth-status');
     if (issue === 'not-linked') {
       status.textContent =
         "Connexion réussie côté Supabase, mais ton compte n'est relié à aucun profil dans la base. " +
         "Exécute supabase/link_profile.sql dans l'éditeur SQL Supabase, puis recharge cette page — " +
-        "ta session est déjà active, aucun nouveau code ne sera nécessaire.";
+        "ta session est déjà active, pas besoin de retaper le code.";
     } else if (issue === 'query-error') {
       status.textContent =
         "Connexion réussie, mais la lecture de la table `profiles` a échoué (policy RLS ou réseau). " +
@@ -370,7 +373,7 @@ async function handleAuthed(profile) {
 }
 
 async function main() {
-  initAuthScreen();
+  initPinScreen();
   onAuthChange(handleAuthed);
   const profile = await initAuth();
   await handleAuthed(profile);

@@ -1,19 +1,31 @@
 // ============================================================================
-// auth.js — Magic Link sign-in, session state, and role lookup.
+// auth.js — connexion par code à 4 chiffres, état de session, lecture du rôle.
 //
-// Flow:
-//   1. User types their email on the auth screen and we call
-//      `signInWithOtp`, which makes Supabase send them a magic link email.
-//   2. They click it, land back on this site with a token in the URL,
-//      and the Supabase SDK (via detectSessionInUrl, see supabase-client.js)
-//      turns that into a logged-in session automatically.
-//   3. We then read their `profiles` row to find out if they're an admin
-//      or a reader. If no profiles row exists (they were never invited —
-//      see supabase/schema.sql), we treat them as unauthorized and sign
-//      them back out, even though Supabase itself let the login succeed.
+// Fonctionnement :
+//   1. Sur l'écran de connexion, tu tapes ton code à 4 chiffres.
+//   2. On appelle `signInWithPassword` de Supabase avec l'e-mail de l'admin
+//      (fixé dans config.js) et le mot de passe « préfixe + code » (voir
+//      PIN_PASSWORD_PREFIX dans config.js). C'est Supabase qui vérifie le
+//      code, côté serveur : il n'est jamais stocké dans le navigateur.
+//   3. La session obtenue est conservée sur l'appareil (persistSession, voir
+//      supabase-client.js) : le code n'est donc demandé qu'une seule fois par
+//      appareil, jusqu'à un « Se déconnecter » dans les Réglages.
+//   4. On lit ensuite la ligne `profiles` liée au compte pour connaître son
+//      rôle (admin). Les règles RLS de supabase/schema.sql continuent de
+//      s'appliquer exactement comme avant.
+//
+// Blocage après plusieurs codes faux (comme un iPhone) : après 5 erreurs
+// d'affilée, on impose une attente de 30 s, puis 1 min, puis 5 min à chaque
+// nouvelle erreur. Ce compteur vit dans le navigateur (localStorage) : c'est
+// un garde-fou d'usage, la vraie limite côté serveur étant celle de Supabase
+// sur le nombre de tentatives de connexion.
+//
+// Remplace l'ancien magic link (lien + code reçus par e-mail), retiré parce
+// qu'il échouait régulièrement.
 // ============================================================================
 
 import { sb } from './supabase-client.js';
+import { ADMIN_EMAIL, PIN_PASSWORD_PREFIX } from './config.js';
 
 // In-memory cache of the current user's profile (role + active status).
 // Re-fetched on every sign-in event, so a revoke takes effect the next time
@@ -25,72 +37,94 @@ export function getCurrentProfile() {
   return currentProfile;
 }
 
-// Sends the magic link (Supabase's email also contains a 6-digit code as a
-// fallback — see verifyEmailCode below — so this stays "Supabase's own
-// magic link mechanism", just with a second way to redeem the same code).
-export async function sendMagicLink(email) {
-  const redirectTo = window.location.origin + window.location.pathname;
-  return sb.auth.signInWithOtp({
-    email: normalizeEmail(email),
-    options: { emailRedirectTo: redirectTo },
+// ----------------------------------------------------------------------------
+// Blocage progressif après des codes faux
+// ----------------------------------------------------------------------------
+const LOCK_STORAGE_KEY = 'miamap.pinLock';
+const FREE_ATTEMPTS = 5; // nombre d'erreurs tolérées avant la première attente
+// Durée d'attente (en secondes) imposée à la 1re, 2e, 3e... erreur au-delà
+// des 5 gratuites. Au-delà de la fin du tableau, on garde la dernière valeur.
+const LOCK_DELAYS_SECONDS = [30, 60, 300];
+
+// Lit l'état du compteur. try/catch : localStorage peut être indisponible
+// (navigation privée stricte) ; dans ce cas on repart simplement de zéro.
+function readLockState() {
+  try {
+    const raw = localStorage.getItem(LOCK_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return { failures: parsed?.failures ?? 0, lockedUntil: parsed?.lockedUntil ?? 0 };
+  } catch {
+    return { failures: 0, lockedUntil: 0 };
+  }
+}
+
+function writeLockState(state) {
+  try {
+    localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Rien à faire : sans stockage, le blocage ne survit pas à un rechargement.
+  }
+}
+
+// Nombre de secondes d'attente restantes avant de pouvoir retenter (0 = libre).
+export function getPinLockRemainingSeconds() {
+  const { lockedUntil } = readLockState();
+  return Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+}
+
+// Enregistre une erreur et, si on dépasse les 5 essais gratuits, pose une
+// attente dont la durée augmente à chaque nouvelle erreur.
+function registerPinFailure() {
+  const state = readLockState();
+  state.failures += 1;
+  // 0 à la 5e erreur, 1 à la 6e, 2 à la 7e... (négatif avant la 5e = pas d'attente)
+  const overLimit = state.failures - FREE_ATTEMPTS;
+  if (overLimit >= 0) {
+    // 5e erreur → 30 s, 6e → 1 min, 7e et suivantes → 5 min.
+    const delay = LOCK_DELAYS_SECONDS[Math.min(overLimit, LOCK_DELAYS_SECONDS.length - 1)];
+    state.lockedUntil = Date.now() + delay * 1000;
+  }
+  writeLockState(state);
+}
+
+function resetPinFailures() {
+  writeLockState({ failures: 0, lockedUntil: 0 });
+}
+
+// ----------------------------------------------------------------------------
+// Connexion par code
+// ----------------------------------------------------------------------------
+// Renvoie { ok: true } si le code est bon, sinon { ok: false, reason, message }
+// avec reason = 'locked' (attente en cours), 'wrong-pin' (code faux) ou
+// 'error' (réseau, projet Supabase en pause, trop de tentatives côté serveur...).
+// En cas de succès, onAuthStateChange (voir onAuthChange plus bas) prend le
+// relais et affiche la carte : rien d'autre à faire pour l'appelant.
+export async function signInWithPin(pin) {
+  if (getPinLockRemainingSeconds() > 0) {
+    return { ok: false, reason: 'locked' };
+  }
+
+  const { error } = await sb.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password: PIN_PASSWORD_PREFIX + pin,
   });
-}
 
-// Fallback path: redeem the numeric code Supabase emailed alongside the
-// link.
-//
-// IMPORTANT — the link and the code in a single email are two forms of the
-// SAME one-time token (the link carries its hashed form, `{{ .Token }}` the
-// plaintext code). Redeeming either one consumes both. So if you click the
-// link first, the code from that same email is already dead.
-//
-// `type: 'email'` is the correct value for a numeric code sent by
-// signInWithOtp({ email }) — confirmed against Supabase's verifyOtp docs.
-// Not 'magiclink', which is not a documented type for verifyOtp.
-//
-// The email must match the one the code was sent to exactly. GoTrue stores
-// addresses lowercased, and returns the SAME generic "Token has expired or
-// is invalid" error whether the token is wrong OR the user lookup failed —
-// so a mistyped/differently-cased address looks identical to a bad code.
-// Hence the normalization here.
-export async function verifyEmailCode(email, code) {
-  const params = {
-    email: normalizeEmail(email),
-    token: code.replace(/\s+/g, ''), // tolerate a pasted "1234 5678"
-    type: 'email',
-  };
-  console.log('[auth] verifyOtp — requête envoyée :', params);
-  const result = await sb.auth.verifyOtp(params);
-  console.log('[auth] verifyOtp — réponse brute :', {
-    session: result.data?.session ? '(session créée)' : null,
-    user: result.data?.user?.id ?? null,
-    error: result.error,
-  });
-  return result;
-}
+  if (!error) {
+    resetPinFailures();
+    return { ok: true };
+  }
 
-export function normalizeEmail(email) {
-  return email.trim().toLowerCase();
-}
+  // Supabase renvoie le code d'erreur 'invalid_credentials' (message
+  // « Invalid login credentials ») quand le mot de passe est faux. Seul ce
+  // cas compte comme une erreur de code : une coupure réseau ou un projet
+  // en pause ne doit pas te bloquer.
+  if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
+    registerPinFailure();
+    return { ok: false, reason: 'wrong-pin' };
+  }
 
-// If the magic link redirect failed server-side (expired/already-used
-// token, mismatched redirect URL, etc.), Supabase appends the failure as
-// `#error=...&error_description=...` (or `?error=...`) to the redirect URL
-// instead of the session tokens. Previously nothing read these — the app
-// just silently fell back to the login screen with no explanation, which
-// is what made this bug hard to diagnose. Call this once on startup.
-export function readAuthErrorFromUrl() {
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const queryParams = new URLSearchParams(window.location.search);
-  const description = hashParams.get('error_description') || queryParams.get('error_description');
-  const code = hashParams.get('error_code') || queryParams.get('error_code');
-  if (!description && !code) return null;
-
-  // Clean the failed params out of the URL so a refresh doesn't re-show
-  // the same stale error.
-  window.history.replaceState(null, '', window.location.pathname);
-
-  return (description ? decodeURIComponent(description.replace(/\+/g, ' ')) : null) || code;
+  console.error('[auth] signInWithPassword a échoué :', error);
+  return { ok: false, reason: 'error', message: error.message };
 }
 
 export async function signOut() {
@@ -180,7 +214,7 @@ export async function initAuth() {
   return loadProfile();
 }
 
-// Subscribe to future auth changes (login via magic link, logout, token
+// Subscribe to future auth changes (connexion par code, logout, token
 // refresh). `callback(profile)` fires with the new profile (or null).
 export function onAuthChange(callback) {
   sb.auth.onAuthStateChange(async (_event, session) => {
