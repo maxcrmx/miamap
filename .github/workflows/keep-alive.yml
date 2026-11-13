@@ -1,15 +1,49 @@
+# ============================================================================
+# keep-alive.yml — empêche la mise en pause du projet Supabase (plan Free).
+#
+# Supabase met en pause un projet Free après 7 jours sans activité réelle
+# sur la base. Ce job appelle deux fois par semaine la fonction keep_alive()
+# (voir supabase/keep_alive.sql), qui fait une vraie écriture en base.
+#
+# Pourquoi l'ancienne version ne marchait pas :
+#   - elle lisait la table `places` sans être connectée ; la base refusait
+#     (« permission denied »), donc rien n'était réellement exécuté ;
+#   - curl sans --fail renvoyait quand même « succès », d'où des coches
+#     vertes alors que le ping ne servait à rien ;
+#   - une fois le projet en pause (fin septembre 2026), l'adresse ne
+#     répondait plus du tout : échecs « Could not resolve host ».
+#
+# La clé utilisée est la clé « publishable » de js/config.js : elle est
+# publique par conception (déjà visible dans le code du site), donc pas
+# besoin de secret GitHub. Elle ne donne accès qu'à keep_alive().
+#
+# Si le job échoue : regarde l'onglet Actions du repo. « Could not resolve
+# host » = le projet est en pause, à réactiver à la main (dashboard Supabase,
+# « Resume project »). Erreur 404 « Could not find the function » =
+# supabase/keep_alive.sql n'a pas été exécuté.
+# ============================================================================
 name: Keep Supabase Alive
 on:
   schedule:
-    - cron: '0 8 * * 1,4'  # tous les lundis + jeudi, 8h UTC
-  workflow_dispatch:
+    # Lundi et jeudi à 8h17 UTC. La minute 17 (plutôt que 0) évite le pic de
+    # l'heure pile, où GitHub retarde ou saute parfois les jobs planifiés.
+    - cron: '17 8 * * 1,4'
+  workflow_dispatch: # permet aussi de le lancer à la main (bouton « Run workflow »)
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Ping Supabase (écriture réelle via keep_alive)
+        # --fail-with-body : le job passe au rouge si Supabase répond une
+        #   erreur (avant, une erreur passait pour un succès).
+        # --retry : réessaie 3 fois, 30 s d'écart, en cas de souci réseau passager.
         run: |
-          curl "https://xkgnijhmanupvoszxszi.supabase.co/rest/v1/places?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 30 --retry-all-errors \
+            -X POST "https://xkgnijhmanupvoszxszi.supabase.co/rest/v1/rpc/keep_alive" \
+            -H "apikey: sb_publishable_sbqVRvbPpW2DFsNlYJlspw_mNYTH5YZ" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          echo
+          echo "Ping OK : la date ci-dessus est celle du dernier passage enregistré en base."
