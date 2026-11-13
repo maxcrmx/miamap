@@ -32,8 +32,21 @@ export const ADMIN_EMAIL = 'cremieux.maxime@gmail.com';
 export const PIN_PASSWORD_PREFIX = 'miamap-';
 export const PIN_LENGTH = 4;
 
-// Reused from the original POC (index.html) — the Google Maps JS API key.
-export const GOOGLE_MAPS_KEY = 'AIzaSyBnuLqnv74mFOif3XwWQ-eEut9Tc6gyVpY';
+// Clé Google Maps (même valeur que dans la balise <script> de index.html).
+// Projet Google Cloud « miamap-0 » (compte Google perso). Clé recréée le
+// 13/11/2026 : l'ancienne appartenait à un projet devenu inaccessible.
+//
+// Protections posées dans la console Google Cloud, pour ne JAMAIS payer :
+//   - clé limitée au site https://maxcrmx.github.io/* et à 2 API seulement
+//     (Maps JavaScript API + Places API) : copiée ailleurs, elle ne sert à rien ;
+//   - quotas journaliers sous la part gratuite mensuelle de Google :
+//       · 300 chargements de carte/jour (× 31 = 9 300 < 10 000 gratuits) ;
+//       · 32 requêtes Places/jour (× 31 = 992 < 1 000 gratuits pour les
+//         données site web/téléphone, l'élément le plus limité) ;
+//     au-delà, Google refuse les requêtes jusqu'au lendemain : l'app se
+//     bloque au lieu de facturer ;
+//   - alerte e-mail à 0,50 €, 0,90 € et 1 € (budget « Alerte Miamap 1 EUR »).
+export const GOOGLE_MAPS_KEY = 'AIzaSyDYH_clDG03zNy8GDi-_KodPC29jfz-trI';
 
 // Paris — fallback map center when geolocation is denied/unavailable.
 export const DEFAULT_MAP_CENTER = { lat: 48.8566, lng: 2.3522 };

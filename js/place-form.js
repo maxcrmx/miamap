@@ -117,14 +117,35 @@ function updateRatingVisibility() {
 // ----------------------------------------------------------------------------
 // Recherche unique Google Places (nom OU adresse dans le même champ)
 // ----------------------------------------------------------------------------
+// Chaque recherche Google Places compte dans le quota de 32 requêtes/jour
+// (voir js/config.js, posé pour ne jamais payer). On attend donc que la
+// frappe se calme (SEARCH_DELAY_MS sans nouvelle touche) avant d'interroger
+// Google : taper « Chez Gladines » fait 1 ou 2 requêtes au lieu d'une par
+// lettre.
+const SEARCH_DELAY_MS = 500;
+let searchTimer = null;
+
+// Message commun quand Google refuse parce que le quota du jour est épuisé.
+const QUOTA_MESSAGE = 'Limite de recherches Google du jour atteinte (protection anti-facturation). Réessaie demain.';
+
 function onSearchInput() {
+  clearTimeout(searchTimer);
   const value = searchInput.value.trim();
   if (value.length < 3) {
     addressSuggestions.innerHTML = '';
     addressStatus.textContent = '';
     return;
   }
+  searchTimer = setTimeout(() => runSearch(value), SEARCH_DELAY_MS);
+}
+
+function runSearch(value) {
   autocompleteService.getPlacePredictions({ input: value }, (predictions, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+      addressSuggestions.innerHTML = '';
+      addressStatus.textContent = QUOTA_MESSAGE;
+      return;
+    }
     if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
       addressSuggestions.innerHTML = '';
       addressStatus.textContent = 'Aucun lieu trouvé.';
@@ -156,6 +177,10 @@ function selectPrediction(prediction) {
     { placeId: prediction.place_id,
       fields: ['place_id', 'formatted_address', 'geometry', 'name', 'website', 'formatted_phone_number'] },
     (place, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+        addressStatus.textContent = QUOTA_MESSAGE;
+        return;
+      }
       if (status !== google.maps.places.PlacesServiceStatus.OK || !place.geometry) {
         addressStatus.textContent = 'Aucun lieu trouvé.';
         return;
